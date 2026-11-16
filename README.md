@@ -11,13 +11,13 @@ Every return ends in one of six dispositions:
 5. **Recycle**: send the item for responsible material recovery.
 6. **Write-off**: remove the item from inventory as a loss.
 
-> **Project status:** Early development. This repository currently contains only the backend project skeleton. Product, return, inspection, warehouse, recommendation and decision-outcome features are planned but **not yet implemented**.
+> **Project status:** Early development. The backend currently provides an Express server with a health-check endpoint. Product, return, inspection, warehouse, recommendation and decision-outcome features are planned but **not yet implemented**.
 
 ## Technology Stack
 
 | Layer | Technology |
 | --- | --- |
-| Runtime | Node.js (v20 or later) |
+| Runtime | Node.js (v22 or later) |
 | Web framework | Express.js |
 | Language | JavaScript (CommonJS) |
 | Database | PostgreSQL (planned) |
@@ -31,13 +31,14 @@ Every return ends in one of six dispositions:
 ```text
 ReturnLoop_AP_2026/
 ├── src/
-│   ├── config/        # Configuration (environment, database connection)
+│   ├── config/        # Configuration (environment variables)
 │   ├── controllers/   # Request handlers
-│   ├── routes/        # Route definitions
+│   ├── routes/        # Route definitions, mounted under /api
 │   ├── services/      # Business logic
 │   ├── models/        # Data access
-│   ├── middleware/    # Express middleware
-│   └── app.js         # Express application
+│   ├── middleware/    # 404 and error-handling middleware
+│   ├── app.js         # Express application (middleware and routes)
+│   └── server.js      # Entry point that starts the HTTP server
 ├── dbms/              # Database design, schema and SQL (owned by the DBMS team)
 ├── tests/             # Automated tests
 ├── docs/              # Project documentation
@@ -49,7 +50,7 @@ ReturnLoop_AP_2026/
 
 ## Installation
 
-Prerequisites: Node.js v20 or later and npm.
+Prerequisites: Node.js v22 or later and npm.
 
 ```bash
 git clone https://github.com/divyanshj25604-arch/ReturnLoop_AP_2026.git
@@ -73,6 +74,52 @@ npm run dev   # start with automatic reload (nodemon)
 npm start     # start with plain Node.js
 npm test      # run the test suite
 ```
+
+When the server starts it logs:
+
+```text
+Return Loop API running on http://localhost:3000 (development)
+```
+
+If the port is already in use, the server logs an error and exits with code 1. Change `PORT` in `.env` to use another port.
+
+## API
+
+All endpoints are served under the `/api` prefix.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/health` | Confirms the API is running |
+
+### `GET /api/health`
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "message": "Return Loop API is running",
+  "service": "Return Loop",
+  "environment": "development"
+}
+```
+
+### Errors
+
+Unknown routes return `404 Not Found`:
+
+```json
+{
+  "success": false,
+  "message": "Route not found: GET /api/unknown"
+}
+```
+
+Malformed JSON request bodies return `400 Bad Request`. Unexpected errors return `500 Internal Server Error`; in production the error details are hidden.
 
 ## License
 

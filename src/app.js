@@ -1,15 +1,20 @@
-require('dotenv').config();
+require('./config/env');
 
 const express = require('express');
+const cors = require('cors');
+
+const routes = require('./routes');
+const notFound = require('./middleware/notFound');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-module.exports = app;
+app.use(cors());
+app.use(express.json());
 
-// Temporary entry point until a dedicated server module is added.
-if (require.main === module) {
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Return Loop listening on port ${port}`);
-  });
-}
+app.use('/api', routes);
+
+app.use(notFound);
+app.use(errorHandler);
+
+module.exports = app;
