@@ -1,5 +1,6 @@
 const app = require('./app');
 const env = require('./config/env');
+const db = require('./config/db');
 
 function handleStartupError(err) {
   if (err.code === 'EADDRINUSE') {
@@ -22,4 +23,12 @@ app.listen(env.port, (err) => {
   console.log(
     `Return Loop API running on http://localhost:${env.port} (${env.nodeEnv})`
   );
+
+  db.query('SELECT 1')
+    .then(() => {
+      console.log('Connected to PostgreSQL database');
+    })
+    .catch((dbErr) => {
+      console.warn('Warning: Could not connect to PostgreSQL database:', dbErr.message);
+    });
 });
