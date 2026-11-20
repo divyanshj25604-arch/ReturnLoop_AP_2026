@@ -497,7 +497,7 @@ export default function Admin() {
           {/* TAB: OPERATORS */}
           {activeTab === 'operators' && (
             <div className="table-panel">
-              <table className="data-table stack">
+              <table className="data-table stack-wide">
                 <thead>
                   <tr>
                     <th>ID</th>

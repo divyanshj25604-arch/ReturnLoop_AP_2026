@@ -961,6 +961,7 @@ textarea.form-control,
 /* ───────────── Data tables ───────────── */
 
 .table-panel {
+  container-type: inline-size;
   background-color: var(--panel);
   border: 1px solid var(--rule);
   border-radius: 6px;
@@ -1083,8 +1084,9 @@ textarea.form-control,
   border-color: var(--ink-3);
 }
 
-/* Stacked rows on narrow screens: each cell shows its column name */
-@media (max-width: 720px) {
+/* Stacked rows when the table is narrow: each cell shows its column name.
+   Returns stack below 640px of table width; the wider admin tables below 980px. */
+@container (max-width: 640px) {
   .data-table.stack thead {
     display: none;
   }
@@ -1116,6 +1118,10 @@ textarea.form-control,
     overflow-wrap: anywhere;
   }
 
+  .data-table.stack td > span {
+    justify-self: start;
+  }
+
   .data-table.stack td::before {
     content: attr(data-label);
     font-size: 0.825rem;
@@ -1145,6 +1151,75 @@ textarea.form-control,
   }
 
   .data-table.stack tbody tr:hover td {
+    background-color: transparent;
+  }
+}
+
+@container (max-width: 980px) {
+  .data-table.stack-wide thead {
+    display: none;
+  }
+
+  .data-table.stack-wide,
+  .data-table.stack-wide tbody,
+  .data-table.stack-wide tr,
+  .data-table.stack-wide td {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table.stack-wide tr {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .data-table.stack-wide tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .data-table.stack-wide td {
+    border: none;
+    padding: 0.15rem 0;
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 0.75rem;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .data-table.stack-wide td > span {
+    justify-self: start;
+  }
+
+  .data-table.stack-wide td::before {
+    content: attr(data-label);
+    font-size: 0.825rem;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  .data-table.stack-wide td.lead {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .data-table.stack-wide td.lead::before,
+  .data-table.stack-wide td.no-label::before,
+  .data-table.stack-wide tr.empty-row td::before {
+    content: none;
+  }
+
+  .data-table.stack-wide td.no-label {
+    display: block;
+    margin-top: 0.4rem;
+  }
+
+  .data-table.stack-wide tr.empty-row td {
+    display: block;
+  }
+
+  .data-table.stack-wide tbody tr:hover td {
     background-color: transparent;
   }
 }
