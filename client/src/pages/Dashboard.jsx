@@ -81,7 +81,8 @@ export default function Dashboard() {
 
   const expectedRecovery = Number(dashboardData?.total_expected_recovery) || 0;
   const actualRecovery = Number(dashboardData?.total_actual_recovery) || 0;
-  const overrideRate = Number(dashboardData?.override_rate) || 0;
+  // The API sends override_rate as a fraction (0.222 = 22.2%, docs/api.md 5.7).
+  const overrideRate = (Number(dashboardData?.override_rate) || 0) * 100;
 
   return (
     <div className="page-dashboard">

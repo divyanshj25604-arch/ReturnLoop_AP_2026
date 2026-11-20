@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { todayLocalIso, formatDateOnly, formatRupees, formatSignedRupees } from '../utils/format';
 
 const LIFECYCLE_STEPS = [
   { key: 'RECEIVED', label: 'Received' },
@@ -67,7 +68,7 @@ export default function ReturnDetail() {
   const [actualRevenue, setActualRevenue] = useState('0');
   const [actualCost, setActualCost] = useState('0');
   const [executionPartner, setExecutionPartner] = useState('');
-  const [completionDate, setCompletionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [completionDate, setCompletionDate] = useState(() => todayLocalIso());
   const [outcomeNotes, setOutcomeNotes] = useState('');
   const [submittingOutcome, setSubmittingOutcome] = useState(false);
   const [outcomeFieldErrors, setOutcomeFieldErrors] = useState({});
@@ -484,7 +485,7 @@ export default function ReturnDetail() {
           <div className="info-item">
             <span className="info-label">Return Date</span>
             <span className="info-value">
-              {ret.return_date ? new Date(ret.return_date).toLocaleDateString() : '—'}
+              {formatDateOnly(ret.return_date)}
             </span>
           </div>
           <div className="info-item" style={{ gridColumn: 'span 2' }}>
@@ -494,7 +495,7 @@ export default function ReturnDetail() {
           {ret.customer_comment && (
             <div className="info-item" style={{ gridColumn: 'span 2' }}>
               <span className="info-label">Customer Comment</span>
-              <span className="info-value" style={{ fontStyle: 'italic', color: '#555' }}>
+              <span className="info-value" style={{ fontStyle: 'italic', color: '#555', whiteSpace: 'pre-line' }}>
                 "{ret.customer_comment}"
               </span>
             </div>
@@ -515,7 +516,7 @@ export default function ReturnDetail() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '0.85rem', color: '#757575', display: 'block' }}>
-                Completed {outcome.completion_date ? new Date(outcome.completion_date).toLocaleDateString() : '—'}
+                Completed {formatDateOnly(outcome.completion_date)}
               </span>
               <span style={{ fontSize: '0.8rem', color: '#9e9e9e' }}>
                 Partner: {outcome.execution_partner || 'Internal Logistics'}
@@ -544,15 +545,15 @@ export default function ReturnDetail() {
                 <div className="comparison-cell">₹{Number(outcome.actual_revenue).toLocaleString()}</div>
                 <div className="comparison-cell">₹{Number(outcome.actual_cost).toLocaleString()}</div>
                 <div className="comparison-cell highlight" style={{ color: actualNet >= 0 ? '#1b5e20' : '#c62828' }}>
-                  ₹{actualNet.toLocaleString()}
+                  {formatRupees(actualNet)}
                 </div>
               </div>
               <div className="comparison-col">
                 <span className="comparison-heading">Variance</span>
-                <div className="comparison-cell">₹{(Number(outcome.actual_revenue) - expectedRevenue).toLocaleString()}</div>
-                <div className="comparison-cell">₹{(Number(outcome.actual_cost) - expectedCost).toLocaleString()}</div>
+                <div className="comparison-cell">{formatSignedRupees(Number(outcome.actual_revenue) - expectedRevenue)}</div>
+                <div className="comparison-cell">{formatSignedRupees(Number(outcome.actual_cost) - expectedCost)}</div>
                 <div className="comparison-cell highlight" style={{ color: variance >= 0 ? '#1b5e20' : '#c62828' }}>
-                  {variance >= 0 ? `+₹${variance.toLocaleString()}` : `-₹${Math.abs(variance).toLocaleString()}`}
+                  {formatSignedRupees(variance)}
                 </div>
               </div>
             </div>

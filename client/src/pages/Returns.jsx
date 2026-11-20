@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { formatDateOnly } from '../utils/format';
 
 const STATUS_OPTIONS = [
   { label: 'All Statuses', value: '' },
@@ -31,9 +32,10 @@ export default function Returns() {
   const [warehouses, setWarehouses] = useState([]);
   const [page, setPage] = useState(1);
 
-  // Load warehouses for supervisors and admins
+  // Load warehouses: the filter dropdown for supervisors and admins, and the
+  // warehouse code shown to inspectors. On failure the list stays empty
+  // (never fall back to made-up warehouses).
   useEffect(() => {
-    if (isInspector) return;
     let isMounted = true;
     api
       .get('/warehouses')
@@ -43,13 +45,7 @@ export default function Returns() {
         }
       })
       .catch(() => {
-        if (isMounted) {
-          setWarehouses([
-            { warehouse_id: 1, warehouse_code: 'WH-DEL-01', facility_name: 'Delhi Returns Hub' },
-            { warehouse_id: 2, warehouse_code: 'WH-BOM-01', facility_name: 'Mumbai Facility' },
-            { warehouse_id: 3, warehouse_code: 'WH-BLR-01', facility_name: 'Bengaluru Logistics Centre' },
-          ]);
-        }
+        if (isMounted) setWarehouses([]);
       });
 
     return () => {
@@ -133,7 +129,10 @@ export default function Returns() {
           <h1>Returns Pipeline</h1>
           <p style={{ color: '#555', margin: 0, fontSize: '0.95rem' }}>
             {isInspector
-              ? `Returns assigned to your warehouse (WH-${user?.warehouse_id})`
+              ? `Returns assigned to your warehouse (${
+                  warehouses.find((w) => w.warehouse_id === user?.warehouse_id)?.warehouse_code ||
+                  `warehouse #${user?.warehouse_id}`
+                })`
               : 'Overview and triage of all return intake items'}
           </p>
         </div>
@@ -311,7 +310,7 @@ export default function Returns() {
                     </span>
                   </td>
                   <td>
-                    {item.return_date ? new Date(item.return_date).toLocaleDateString() : '—'}
+                    {formatDateOnly(item.return_date)}
                   </td>
                 </tr>
               ))

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { todayLocalIso } from '../utils/format';
 
 export default function NewReturn() {
   const { user } = useAuth();
@@ -19,7 +20,7 @@ export default function NewReturn() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [returnReason, setReturnReason] = useState('');
-  const [returnDate, setReturnDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [returnDate, setReturnDate] = useState(() => todayLocalIso());
   const [customerComment, setCustomerComment] = useState('');
 
   const [fieldErrors, setFieldErrors] = useState({});
@@ -126,7 +127,7 @@ export default function NewReturn() {
     }
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayLocalIso();
 
   return (
     <div className="page-new-return" style={{ maxWidth: '720px', margin: '0 auto' }}>

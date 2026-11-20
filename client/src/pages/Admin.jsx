@@ -61,20 +61,16 @@ export default function Admin() {
     setLoading(true);
     setPageError('');
     try {
-      if (activeTab === 'products') {
-        const res = await api.get('/products');
-        setProducts(res.data.data || []);
-      } else if (activeTab === 'warehouses') {
-        const res = await api.get('/warehouses');
-        setWarehouses(res.data.data || []);
-      } else if (activeTab === 'operators') {
-        const [opRes, whRes] = await Promise.all([
-          api.get('/operators'),
-          api.get('/warehouses'),
-        ]);
-        setOperators(opRes.data.data || []);
-        setWarehouses(whRes.data.data || []);
-      }
+      // Load all three lists together so every tab label shows its real count
+      // (they're small; loading only the active tab made the others show 0).
+      const [prodRes, whRes, opRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/warehouses'),
+        api.get('/operators'),
+      ]);
+      setProducts(prodRes.data.data || []);
+      setWarehouses(whRes.data.data || []);
+      setOperators(opRes.data.data || []);
     } catch (err) {
       setPageError(getApiErrorMessage(err));
     } finally {

@@ -159,12 +159,12 @@ END;
 /* Sample Output (Warehouse 1: WH-DEL-01):
  disposition | count
 -------------+-------
- Resell      |     0
- Refurbish   |     2
+ Resell      |     1
+ Refurbish   |     1
  Exchange    |     0
  Donate      |     0
- Recycle     |     1
- Write-off   |     0
+ Recycle     |     0
+ Write-off   |     1
 (6 rows)
 */
 
@@ -214,7 +214,7 @@ WHERE r.warehouse_id = 1;
 /* Sample Output (Warehouse 1: WH-DEL-01):
  total_decisions | override_count | override_rate
 -----------------+----------------+---------------
-               3 |              1 |         0.333
+               3 |              0 |         0.000
 (1 row)
 */
 
@@ -254,7 +254,7 @@ WHERE r.warehouse_id = 1;
 /* Sample Output (Warehouse 1: WH-DEL-01):
  total_expected_recovery
 -------------------------
-                98250.00
+               103800.00
 (1 row)
 */
 
@@ -290,7 +290,7 @@ WHERE r.warehouse_id = 1;
 /* Sample Output (Warehouse 1: WH-DEL-01):
  total_actual_recovery
 -----------------------
-              96500.00
+             104450.00
 (1 row)
 */
 
