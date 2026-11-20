@@ -5,6 +5,8 @@ const {
   createReturn,
 } = require('../controllers/return.controller');
 const { startInspection, recordInspection } = require('../controllers/inspection.controller');
+const { getRecommendation, makeDecision } = require('../controllers/decision.controller');
+const { requireRole } = require('../middleware/auth');
 
 const router = Router();
 
@@ -15,5 +17,9 @@ router.post('/', createReturn);
 // Workflow (docs/api.md section 3). Any logged-in role (INSPECTOR and up).
 router.post('/:id/start-inspection', startInspection);
 router.post('/:id/inspections', recordInspection);
+router.get('/:id/recommendation', getRecommendation);
+
+// Supervisor and admin only.
+router.post('/:id/decision', requireRole('SUPERVISOR'), makeDecision);
 
 module.exports = router;
