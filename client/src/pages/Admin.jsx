@@ -291,65 +291,74 @@ export default function Admin() {
 
   return (
     <div className="page-admin">
-      <div className="admin-header">
-        <div>
-          <h1>Administration</h1>
-          <p className="admin-subtitle">Manage catalog products, logistics warehouses, and operator accounts.</p>
+      <div className="page-head">
+        <div className="page-head-text">
+          <h1>Admin</h1>
+          <p className="page-sub">The product catalog, warehouses, and who can sign in.</p>
         </div>
-        <div className="admin-actions">
+        <div className="page-actions">
           {activeTab === 'products' && (
-            <button className="primary-btn" onClick={handleOpenCreateProduct}>
-              + New Product
+            <button className="btn-primary" onClick={handleOpenCreateProduct}>
+              Add product
             </button>
           )}
           {activeTab === 'warehouses' && (
-            <button className="primary-btn" onClick={handleOpenCreateWarehouse}>
-              + New Warehouse
+            <button className="btn-primary" onClick={handleOpenCreateWarehouse}>
+              Add warehouse
             </button>
           )}
           {activeTab === 'operators' && (
-            <button className="primary-btn" onClick={handleOpenCreateOperator}>
-              + New Operator
+            <button className="btn-primary" onClick={handleOpenCreateOperator}>
+              Add operator
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="admin-tabs">
+      <div className="tabs" role="tablist">
         <button
-          className={`admin-tab-btn ${activeTab === 'products' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'products'}
+          className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`}
           onClick={() => setActiveTab('products')}
         >
-          Products ({products.length})
+          Products <span className="tab-count">{products.length}</span>
         </button>
         <button
-          className={`admin-tab-btn ${activeTab === 'warehouses' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'warehouses'}
+          className={`tab-btn ${activeTab === 'warehouses' ? 'active' : ''}`}
           onClick={() => setActiveTab('warehouses')}
         >
-          Warehouses ({warehouses.length})
+          Warehouses <span className="tab-count">{warehouses.length}</span>
         </button>
         <button
-          className={`admin-tab-btn ${activeTab === 'operators' ? 'active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'operators'}
+          className={`tab-btn ${activeTab === 'operators' ? 'active' : ''}`}
           onClick={() => setActiveTab('operators')}
         >
-          Operators ({operators.length})
+          Operators <span className="tab-count">{operators.length}</span>
         </button>
       </div>
 
       {actionSuccess && (
-        <div className="admin-alert success" style={{ marginBottom: '1.25rem' }}>
+        <div className="alert success" role="status">
           <span>{actionSuccess}</span>
-          <button className="close-alert-btn" onClick={() => setActionSuccess('')}>
+          <button type="button" className="close-alert-btn" aria-label="Dismiss" onClick={() => setActionSuccess('')}>
             ×
           </button>
         </div>
       )}
 
       {pageError && (
-        <div className="error-banner" role="alert" style={{ marginBottom: '1.25rem' }}>
+        <div className="error-banner" role="alert">
           <div>
-            <strong>Error:</strong> {pageError}
+            <strong>Couldn't load admin data.</strong> {pageError}
           </div>
           <button type="button" className="retry-btn" onClick={fetchData}>
             Retry
@@ -359,16 +368,16 @@ export default function Admin() {
 
       {/* Main Tab Content */}
       {loading ? (
-        <div className="loading-container" style={{ padding: '4rem 1.5rem', backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
+        <div className="panel loading-container">
           <div className="spinner" />
-          <span>Loading {activeTab} data...</span>
+          <span>Loading {activeTab}…</span>
         </div>
       ) : (
         <>
           {/* TAB: PRODUCTS */}
           {activeTab === 'products' && (
-            <div className="admin-table-card">
-              <table className="admin-table">
+            <div className="table-panel">
+              <table className="data-table stack">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -376,25 +385,23 @@ export default function Admin() {
                     <th>Brand</th>
                     <th>Model</th>
                     <th>Category</th>
-                    <th style={{ textAlign: 'right' }}>Retail Price</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+                    <th className="num">Retail price</th>
+                    <th className="num"><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.length === 0 ? (
-                    <tr>
+                    <tr className="empty-row">
                       <td colSpan="7">
-                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
-                          <div className="empty-state-icon">📱</div>
-                          <h3 className="empty-state-title">No products found</h3>
-                          <p className="empty-state-desc">The catalog is currently empty. Add your first product to allow returns intake.</p>
+                        <div className="empty-state-card">
+                          <h3 className="empty-state-title">No products yet</h3>
+                          <p className="empty-state-desc">Returns can only be recorded against catalog products. Add the first one.</p>
                           <button
                             type="button"
-                            className="primary-btn"
-                            style={{ marginTop: '0.5rem' }}
+                            className="btn-primary"
                             onClick={handleOpenCreateProduct}
                           >
-                            + Add First Product
+                            Add product
                           </button>
                         </div>
                       </td>
@@ -402,19 +409,19 @@ export default function Admin() {
                   ) : (
                     products.map((p) => (
                       <tr key={p.product_id}>
-                        <td>#{p.product_id}</td>
-                        <td className="sku-cell">{p.sku}</td>
-                        <td>{p.brand}</td>
-                        <td style={{ fontWeight: 600 }}>{p.model_name}</td>
-                        <td>
+                        <td data-label="ID" className="muted">#{p.product_id}</td>
+                        <td data-label="SKU" className="code">{p.sku}</td>
+                        <td data-label="Brand">{p.brand}</td>
+                        <td data-label="Model" className="cell-strong">{p.model_name}</td>
+                        <td data-label="Category">
                           <span className="category-pill">{p.category}</span>
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        <td data-label="Retail price" className="num cell-strong">
                           {formatCurrency(p.retail_price)}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="num no-label">
                           <button
-                            className="admin-edit-btn"
+                            className="btn-secondary btn-sm"
                             onClick={() => handleOpenEditProduct(p)}
                           >
                             Edit
@@ -430,34 +437,32 @@ export default function Admin() {
 
           {/* TAB: WAREHOUSES */}
           {activeTab === 'warehouses' && (
-            <div className="admin-table-card">
-              <table className="admin-table">
+            <div className="table-panel">
+              <table className="data-table stack">
                 <thead>
                   <tr>
                     <th>ID</th>
                     <th>Code</th>
-                    <th>Facility Name</th>
+                    <th>Facility</th>
                     <th>City</th>
                     <th>State</th>
-                    <th style={{ textAlign: 'right' }}>Capacity</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+                    <th className="num">Capacity</th>
+                    <th className="num"><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {warehouses.length === 0 ? (
-                    <tr>
+                    <tr className="empty-row">
                       <td colSpan="7">
-                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
-                          <div className="empty-state-icon">🏢</div>
-                          <h3 className="empty-state-title">No warehouses found</h3>
-                          <p className="empty-state-desc">No return logistics facilities have been set up yet.</p>
+                        <div className="empty-state-card">
+                          <h3 className="empty-state-title">No warehouses yet</h3>
+                          <p className="empty-state-desc">Add a warehouse so returns and operators can be assigned to it.</p>
                           <button
                             type="button"
-                            className="primary-btn"
-                            style={{ marginTop: '0.5rem' }}
+                            className="btn-primary"
                             onClick={handleOpenCreateWarehouse}
                           >
-                            + Add First Warehouse
+                            Add warehouse
                           </button>
                         </div>
                       </td>
@@ -465,17 +470,17 @@ export default function Admin() {
                   ) : (
                     warehouses.map((wh) => (
                       <tr key={wh.warehouse_id}>
-                        <td>#{wh.warehouse_id}</td>
-                        <td className="sku-cell">{wh.warehouse_code}</td>
-                        <td style={{ fontWeight: 600 }}>{wh.facility_name}</td>
-                        <td>{wh.city}</td>
-                        <td>{wh.state}</td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td data-label="ID" className="muted">#{wh.warehouse_id}</td>
+                        <td data-label="Code" className="code">{wh.warehouse_code}</td>
+                        <td data-label="Facility" className="cell-strong">{wh.facility_name}</td>
+                        <td data-label="City">{wh.city}</td>
+                        <td data-label="State">{wh.state}</td>
+                        <td data-label="Capacity" className="num">
                           {Number(wh.capacity).toLocaleString()} units
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="num no-label">
                           <button
-                            className="admin-edit-btn"
+                            className="btn-secondary btn-sm"
                             onClick={() => handleOpenEditWarehouse(wh)}
                           >
                             Edit
@@ -491,36 +496,34 @@ export default function Admin() {
 
           {/* TAB: OPERATORS */}
           {activeTab === 'operators' && (
-            <div className="admin-table-card">
-              <table className="admin-table">
+            <div className="table-panel">
+              <table className="data-table stack">
                 <thead>
                   <tr>
                     <th>ID</th>
                     <th>Code</th>
-                    <th>Full Name</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th>Job Title</th>
-                    <th>App Role</th>
+                    <th>Job title</th>
+                    <th>Access</th>
                     <th>Warehouse</th>
                     <th>Status</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+                    <th className="num"><span className="visually-hidden">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
                   {operators.length === 0 ? (
-                    <tr>
+                    <tr className="empty-row">
                       <td colSpan="9">
-                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
-                          <div className="empty-state-icon">👥</div>
-                          <h3 className="empty-state-title">No operators found</h3>
-                          <p className="empty-state-desc">No operator accounts have been provisioned yet.</p>
+                        <div className="empty-state-card">
+                          <h3 className="empty-state-title">No operators yet</h3>
+                          <p className="empty-state-desc">Add an operator so someone can sign in.</p>
                           <button
                             type="button"
-                            className="primary-btn"
-                            style={{ marginTop: '0.5rem' }}
+                            className="btn-primary"
                             onClick={handleOpenCreateOperator}
                           >
-                            + Add First Operator
+                            Add operator
                           </button>
                         </div>
                       </td>
@@ -528,30 +531,30 @@ export default function Admin() {
                   ) : (
                     operators.map((op) => (
                       <tr key={op.operator_id}>
-                        <td>#{op.operator_id}</td>
-                        <td className="sku-cell">{op.employee_code}</td>
-                        <td style={{ fontWeight: 600 }}>
+                        <td data-label="ID" className="muted">#{op.operator_id}</td>
+                        <td data-label="Code" className="code">{op.employee_code}</td>
+                        <td data-label="Name" className="cell-strong">
                           {op.full_name}
                           {user?.operator_id === op.operator_id && (
                             <span className="current-user-tag"> (You)</span>
                           )}
                         </td>
-                        <td>{op.email}</td>
-                        <td>{op.role}</td>
-                        <td>
+                        <td data-label="Email">{op.email}</td>
+                        <td data-label="Job title">{op.role}</td>
+                        <td data-label="Access">
                           <span className={`role-badge ${op.app_role}`}>
                             {op.app_role}
                           </span>
                         </td>
-                        <td>{getWarehouseName(op.warehouse_id)}</td>
-                        <td>
-                          <span className={`status-badge ${op.is_active ? 'active' : 'inactive'}`}>
+                        <td data-label="Warehouse">{getWarehouseName(op.warehouse_id)}</td>
+                        <td data-label="Status">
+                          <span className={`status-tag ${op.is_active ? 'active' : 'inactive'}`}>
                             {op.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="num no-label">
                           <button
-                            className="admin-edit-btn"
+                            className="btn-secondary btn-sm"
                             onClick={() => handleOpenEditOperator(op)}
                           >
                             Edit
@@ -572,8 +575,10 @@ export default function Admin() {
         <div className="modal-backdrop">
           <div className="modal-box">
             <div className="modal-header">
-              <h2>{editingItem ? 'Edit Product' : 'New Product'}</h2>
+              <h2>{editingItem ? 'Edit product' : 'Add product'}</h2>
               <button
+                type="button"
+                aria-label="Close"
                 className="modal-close-btn"
                 onClick={() => {
                   setShowCreateModal(false);
@@ -583,11 +588,11 @@ export default function Admin() {
                 ×
               </button>
             </div>
-            {formError && <div className="admin-alert error">{formError}</div>}
-            <form onSubmit={handleSaveProduct} className="admin-form">
+            {formError && <div className="alert error" role="alert">{formError}</div>}
+            <form onSubmit={handleSaveProduct}>
               <div className="form-group">
-                <label>SKU *</label>
-                <input
+                <label htmlFor="adm-sku">SKU <span className="required-star">*</span></label>
+                <input id="adm-sku"
                   type="text"
                   required
                   disabled={formSubmitting}
@@ -598,10 +603,10 @@ export default function Admin() {
                 {fieldErrors.sku && <span className="field-error">{fieldErrors.sku}</span>}
               </div>
 
-              <div className="form-group-row">
+              <div className="field-row">
                 <div className="form-group">
-                  <label>Brand *</label>
-                  <input
+                  <label htmlFor="adm-brand">Brand <span className="required-star">*</span></label>
+                  <input id="adm-brand"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -612,8 +617,8 @@ export default function Admin() {
                   {fieldErrors.brand && <span className="field-error">{fieldErrors.brand}</span>}
                 </div>
                 <div className="form-group">
-                  <label>Category *</label>
-                  <input
+                  <label htmlFor="adm-category">Category <span className="required-star">*</span></label>
+                  <input id="adm-category"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -628,8 +633,8 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label>Model Name *</label>
-                <input
+                <label htmlFor="adm-model-name">Model name <span className="required-star">*</span></label>
+                <input id="adm-model-name"
                   type="text"
                   required
                   disabled={formSubmitting}
@@ -643,8 +648,8 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label>Retail Price (₹) *</label>
-                <input
+                <label htmlFor="adm-retail-price">Retail price (₹) <span className="required-star">*</span></label>
+                <input id="adm-retail-price"
                   type="number"
                   step="0.01"
                   min="0"
@@ -664,7 +669,7 @@ export default function Admin() {
               <div className="modal-actions">
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="btn-secondary"
                   onClick={() => {
                     setShowCreateModal(false);
                     setEditingItem(null);
@@ -673,12 +678,12 @@ export default function Admin() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="primary-btn" disabled={formSubmitting}>
+                <button type="submit" className="btn-primary" disabled={formSubmitting}>
                   {formSubmitting
-                    ? 'Saving...'
+                    ? 'Saving…'
                     : editingItem
-                    ? 'Update Product'
-                    : 'Create Product'}
+                    ? 'Save product'
+                    : 'Add product'}
                 </button>
               </div>
             </form>
@@ -691,8 +696,10 @@ export default function Admin() {
         <div className="modal-backdrop">
           <div className="modal-box">
             <div className="modal-header">
-              <h2>{editingItem ? 'Edit Warehouse' : 'New Warehouse'}</h2>
+              <h2>{editingItem ? 'Edit warehouse' : 'Add warehouse'}</h2>
               <button
+                type="button"
+                aria-label="Close"
                 className="modal-close-btn"
                 onClick={() => {
                   setShowCreateModal(false);
@@ -702,11 +709,11 @@ export default function Admin() {
                 ×
               </button>
             </div>
-            {formError && <div className="admin-alert error">{formError}</div>}
-            <form onSubmit={handleSaveWarehouse} className="admin-form">
+            {formError && <div className="alert error" role="alert">{formError}</div>}
+            <form onSubmit={handleSaveWarehouse}>
               <div className="form-group">
-                <label>Warehouse Code *</label>
-                <input
+                <label htmlFor="adm-warehouse-code">Warehouse code <span className="required-star">*</span></label>
+                <input id="adm-warehouse-code"
                   type="text"
                   required
                   disabled={formSubmitting}
@@ -722,8 +729,8 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label>Facility Name *</label>
-                <input
+                <label htmlFor="adm-facility-name">Facility name <span className="required-star">*</span></label>
+                <input id="adm-facility-name"
                   type="text"
                   required
                   disabled={formSubmitting}
@@ -738,10 +745,10 @@ export default function Admin() {
                 )}
               </div>
 
-              <div className="form-group-row">
+              <div className="field-row">
                 <div className="form-group">
-                  <label>City *</label>
-                  <input
+                  <label htmlFor="adm-city">City <span className="required-star">*</span></label>
+                  <input id="adm-city"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -754,8 +761,8 @@ export default function Admin() {
                   {fieldErrors.city && <span className="field-error">{fieldErrors.city}</span>}
                 </div>
                 <div className="form-group">
-                  <label>State *</label>
-                  <input
+                  <label htmlFor="adm-state">State <span className="required-star">*</span></label>
+                  <input id="adm-state"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -770,8 +777,8 @@ export default function Admin() {
               </div>
 
               <div className="form-group">
-                <label>Capacity (Units) *</label>
-                <input
+                <label htmlFor="adm-capacity-units">Capacity (units) <span className="required-star">*</span></label>
+                <input id="adm-capacity-units"
                   type="number"
                   min="1"
                   step="1"
@@ -791,7 +798,7 @@ export default function Admin() {
               <div className="modal-actions">
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="btn-secondary"
                   onClick={() => {
                     setShowCreateModal(false);
                     setEditingItem(null);
@@ -800,12 +807,12 @@ export default function Admin() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="primary-btn" disabled={formSubmitting}>
+                <button type="submit" className="btn-primary" disabled={formSubmitting}>
                   {formSubmitting
-                    ? 'Saving...'
+                    ? 'Saving…'
                     : editingItem
-                    ? 'Update Warehouse'
-                    : 'Create Warehouse'}
+                    ? 'Save warehouse'
+                    : 'Add warehouse'}
                 </button>
               </div>
             </form>
@@ -818,8 +825,10 @@ export default function Admin() {
         <div className="modal-backdrop">
           <div className="modal-box">
             <div className="modal-header">
-              <h2>{editingItem ? 'Edit Operator' : 'New Operator'}</h2>
+              <h2>{editingItem ? 'Edit operator' : 'Add operator'}</h2>
               <button
+                type="button"
+                aria-label="Close"
                 className="modal-close-btn"
                 onClick={() => {
                   setShowCreateModal(false);
@@ -829,12 +838,12 @@ export default function Admin() {
                 ×
               </button>
             </div>
-            {formError && <div className="admin-alert error">{formError}</div>}
-            <form onSubmit={handleSaveOperator} className="admin-form">
+            {formError && <div className="alert error" role="alert">{formError}</div>}
+            <form onSubmit={handleSaveOperator}>
               {!editingItem && (
                 <div className="form-group">
-                  <label>Employee Code *</label>
-                  <input
+                  <label htmlFor="adm-employee-code">Employee code <span className="required-star">*</span></label>
+                  <input id="adm-employee-code"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -850,10 +859,10 @@ export default function Admin() {
                 </div>
               )}
 
-              <div className="form-group-row">
+              <div className="field-row">
                 <div className="form-group">
-                  <label>Full Name *</label>
-                  <input
+                  <label htmlFor="adm-full-name">Full name <span className="required-star">*</span></label>
+                  <input id="adm-full-name"
                     type="text"
                     required
                     disabled={formSubmitting}
@@ -869,8 +878,8 @@ export default function Admin() {
                 </div>
                 {!editingItem ? (
                   <div className="form-group">
-                    <label>Email *</label>
-                    <input
+                    <label htmlFor="adm-email">Email <span className="required-star">*</span></label>
+                    <input id="adm-email"
                       type="email"
                       required
                       disabled={formSubmitting}
@@ -886,15 +895,15 @@ export default function Admin() {
                   </div>
                 ) : (
                   <div className="form-group">
-                    <label>Email</label>
-                    <input type="email" disabled value={operatorForm.email} />
+                    <label htmlFor="adm-email-2">Email</label>
+                    <input id="adm-email-2" type="email" disabled value={operatorForm.email} />
                   </div>
                 )}
               </div>
 
               <div className="form-group">
-                <label>Job Title (Role) *</label>
-                <input
+                <label htmlFor="adm-job-title">Job title <span className="required-star">*</span></label>
+                <input id="adm-job-title"
                   type="text"
                   required
                   disabled={formSubmitting}
@@ -905,10 +914,10 @@ export default function Admin() {
                 {fieldErrors.role && <span className="field-error">{fieldErrors.role}</span>}
               </div>
 
-              <div className="form-group-row">
+              <div className="field-row">
                 <div className="form-group">
-                  <label>Application Role *</label>
-                  <select
+                  <label htmlFor="adm-access-level">Access level <span className="required-star">*</span></label>
+                  <select id="adm-access-level"
                     value={operatorForm.app_role}
                     disabled={formSubmitting}
                     onChange={(e) =>
@@ -925,8 +934,8 @@ export default function Admin() {
                 </div>
 
                 <div className="form-group">
-                  <label>Assigned Warehouse *</label>
-                  <select
+                  <label htmlFor="adm-warehouse">Warehouse <span className="required-star">*</span></label>
+                  <select id="adm-warehouse"
                     value={operatorForm.warehouse_id}
                     required
                     disabled={formSubmitting}
@@ -951,8 +960,8 @@ export default function Admin() {
 
               {editingItem && (
                 <div className="form-group">
-                  <label>Status *</label>
-                  <select
+                  <label htmlFor="adm-status">Status <span className="required-star">*</span></label>
+                  <select id="adm-status"
                     value={operatorForm.is_active ? 'true' : 'false'}
                     disabled={formSubmitting}
                     onChange={(e) =>
@@ -962,8 +971,8 @@ export default function Admin() {
                       })
                     }
                   >
-                    <option value="true">Active (Can log in)</option>
-                    <option value="false">Inactive (Login blocked)</option>
+                    <option value="true">Active (can sign in)</option>
+                    <option value="false">Inactive (sign-in blocked)</option>
                   </select>
                   {fieldErrors.is_active && (
                     <span className="field-error">{fieldErrors.is_active}</span>
@@ -972,10 +981,11 @@ export default function Admin() {
               )}
 
               <div className="form-group">
-                <label>
-                  {editingItem ? 'Reset Password (optional)' : 'Password *'}
+                <label htmlFor="adm-password">
+                  {editingItem ? 'New password (optional)' : 'Password *'}
                 </label>
                 <input
+                  id="adm-password"
                   type="password"
                   required={!editingItem}
                   disabled={formSubmitting}
@@ -997,7 +1007,7 @@ export default function Admin() {
               <div className="modal-actions">
                 <button
                   type="button"
-                  className="secondary-btn"
+                  className="btn-secondary"
                   onClick={() => {
                     setShowCreateModal(false);
                     setEditingItem(null);
@@ -1006,12 +1016,12 @@ export default function Admin() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="primary-btn" disabled={formSubmitting}>
+                <button type="submit" className="btn-primary" disabled={formSubmitting}>
                   {formSubmitting
-                    ? 'Saving...'
+                    ? 'Saving…'
                     : editingItem
-                    ? 'Update Operator'
-                    : 'Create Operator'}
+                    ? 'Save operator'
+                    : 'Add operator'}
                 </button>
               </div>
             </form>
