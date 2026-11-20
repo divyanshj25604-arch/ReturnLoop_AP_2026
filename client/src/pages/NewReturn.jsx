@@ -130,21 +130,23 @@ export default function NewReturn() {
   const todayStr = todayLocalIso();
 
   return (
-    <div className="page-new-return" style={{ maxWidth: '720px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none', fontSize: '0.9rem' }}>
-          ← Back to Returns
-        </Link>
-        <h1 style={{ marginTop: '0.5rem' }}>Intake New Return</h1>
-        <p style={{ color: '#666', margin: 0 }}>
-          Record an incoming returned electronic item for evaluation and disposition.
-        </p>
+    <div className="page-new-return narrow-page">
+      <Link to="/returns" className="back-link">
+        ← Returns
+      </Link>
+      <div className="page-head">
+        <div className="page-head-text">
+          <h1>New return</h1>
+          <p className="page-sub">
+            Record a device that has arrived at the warehouse. It starts as Received, ready for inspection.
+          </p>
+        </div>
       </div>
 
       {generalError && (
         <div className="error-banner" role="alert">
           <div>
-            <strong>Error:</strong> {generalError}
+            <strong>Couldn't save.</strong> {generalError}
           </div>
           {loadingData && (
             <button type="button" className="retry-btn" onClick={loadData}>
@@ -155,39 +157,36 @@ export default function NewReturn() {
       )}
 
       {loadingData ? (
-        <div className="loading-container">
+        <div className="panel loading-container">
           <div className="spinner" />
-          <span>Loading intake catalog and warehouse configurations...</span>
+          <span>Loading products and warehouses…</span>
         </div>
       ) : products.length === 0 ? (
-        <div className="empty-state-card">
-          <div className="empty-state-icon">📱</div>
-          <h3 className="empty-state-title">No products available</h3>
+        <div className="empty-state-card boxed">
+          <h3 className="empty-state-title">No products in the catalog</h3>
           <p className="empty-state-desc">
-            No products are registered in the catalog yet. An administrator must create catalog products before returns can be received.
+            An administrator needs to add products before returns can be recorded.
           </p>
-          <Link to="/returns" className="btn-secondary" style={{ textDecoration: 'none', marginTop: '0.5rem' }}>
-            Back to Returns
+          <Link to="/returns" className="btn-secondary">
+            Back to returns
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="form-card">
+        <form onSubmit={handleSubmit} className="panel">
           {/* Product selector */}
           <div className="form-group">
             <label htmlFor="product-select">
               Product <span className="required-star">*</span>
             </label>
-            <div style={{ marginBottom: '0.5rem' }}>
-              <input
-                type="text"
-                placeholder="Filter products by brand, model or SKU..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                disabled={submitting}
-                className="filter-input"
-                style={{ width: '100%', boxSizing: 'border-box' }}
-              />
-            </div>
+            <input
+              type="search"
+              aria-label="Filter products"
+              placeholder="Filter by brand, model or SKU"
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              disabled={submitting}
+              className="filter-input"
+            />
             <select
               id="product-select"
               value={productId}
@@ -214,7 +213,7 @@ export default function NewReturn() {
           {/* Warehouse selector */}
           <div className="form-group">
             <label htmlFor="warehouse-select">
-              Intake Warehouse <span className="required-star">*</span>
+              Warehouse <span className="required-star">*</span>
             </label>
             <select
               id="warehouse-select"
@@ -232,7 +231,7 @@ export default function NewReturn() {
             </select>
             {isInspector && (
               <span className="field-hint">
-                Inspectors are fixed to their assigned facility.
+                Inspectors record returns at their own warehouse.
               </span>
             )}
             {fieldErrors.warehouse_id && (
@@ -240,10 +239,10 @@ export default function NewReturn() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="field-row">
             {/* Serial number */}
             <div className="form-group">
-              <label htmlFor="serial-number">Serial Number</label>
+              <label htmlFor="serial-number">Serial number</label>
               <input
                 id="serial-number"
                 type="text"
@@ -260,14 +259,14 @@ export default function NewReturn() {
 
             {/* Tracking number (optional) */}
             <div className="form-group">
-              <label htmlFor="tracking-number">Tracking Number (Optional)</label>
+              <label htmlFor="tracking-number">Tracking number</label>
               <input
                 id="tracking-number"
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 disabled={submitting}
-                placeholder="Auto-generated if left blank"
+                placeholder="Leave blank to generate one"
                 className="form-control"
               />
               {fieldErrors.return_tracking_number && (
@@ -278,7 +277,7 @@ export default function NewReturn() {
 
           {/* Return Date */}
           <div className="form-group">
-            <label htmlFor="return-date">Return Date</label>
+            <label htmlFor="return-date">Return date</label>
             <input
               id="return-date"
               type="date"
@@ -296,7 +295,7 @@ export default function NewReturn() {
           {/* Return reason (required) */}
           <div className="form-group">
             <label htmlFor="return-reason">
-              Return Reason <span className="required-star">*</span>
+              Return reason <span className="required-star">*</span>
             </label>
             <input
               id="return-reason"
@@ -315,14 +314,14 @@ export default function NewReturn() {
 
           {/* Customer comment */}
           <div className="form-group">
-            <label htmlFor="customer-comment">Customer Comment</label>
+            <label htmlFor="customer-comment">Customer comment</label>
             <textarea
               id="customer-comment"
               rows={3}
               value={customerComment}
               onChange={(e) => setCustomerComment(e.target.value)}
               disabled={submitting}
-              placeholder="Additional feedback or condition reported by the customer..."
+              placeholder="What the customer said about the device"
               className="form-control"
             />
             {fieldErrors.customer_comment && (
@@ -331,7 +330,7 @@ export default function NewReturn() {
           </div>
 
           {/* Buttons */}
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <div className="form-actions">
             <button
               type="button"
               onClick={() => navigate('/returns')}
@@ -345,7 +344,7 @@ export default function NewReturn() {
               disabled={submitting || (filteredProducts.length === 0 && !productId)}
               className="btn-primary"
             >
-              {submitting ? 'Creating Return...' : 'Create Return'}
+              {submitting ? 'Recording return…' : 'Record return'}
             </button>
           </div>
         </form>

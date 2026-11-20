@@ -3,14 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { formatDateOnly } from '../utils/format';
+import { statusLabel } from '../utils/status';
 
 // Wait this long after the last keystroke before searching.
 const SEARCH_DEBOUNCE_MS = 300;
 
 const STATUS_OPTIONS = [
-  { label: 'All Statuses', value: '' },
+  { label: 'All statuses', value: '' },
   { label: 'Received', value: 'RECEIVED' },
-  { label: 'Under Inspection', value: 'UNDER_INSPECTION' },
+  { label: 'Under inspection', value: 'UNDER_INSPECTION' },
   { label: 'Evaluated', value: 'EVALUATED' },
   { label: 'Decided', value: 'DECIDED' },
   { label: 'Completed', value: 'COMPLETED' },
@@ -136,47 +137,33 @@ export default function Returns() {
 
   return (
     <div className="page-returns">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <div>
-          <h1>Returns Pipeline</h1>
-          <p style={{ color: '#555', margin: 0, fontSize: '0.95rem' }}>
+      <div className="page-head">
+        <div className="page-head-text">
+          <h1>Returns</h1>
+          <p className="page-sub">
             {isInspector
-              ? `Returns assigned to your warehouse (${
+              ? `Returns at your warehouse, ${
                   warehouses.find((w) => w.warehouse_id === user?.warehouse_id)?.warehouse_code ||
                   `warehouse #${user?.warehouse_id}`
-                })`
-              : 'Overview and triage of all return intake items'}
+                }.`
+              : 'Every return across all warehouses. Open one to inspect, decide or record its outcome.'}
           </p>
         </div>
-        <div>
-          <Link
-            to="/returns/new"
-            className="btn-primary"
-            style={{ textDecoration: 'none', display: 'inline-block' }}
-          >
-            + Intake Return
+        <div className="page-actions">
+          <Link to="/returns/new" className="btn-primary">
+            New return
           </Link>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="returns-filters">
-        <div className="filter-group">
+      <div className="filter-bar">
+        <div className="filter-group grow">
           <label htmlFor="filter-search">Search</label>
           <input
             id="filter-search"
-            type="text"
+            type="search"
             className="filter-input"
-            placeholder="Search tracking or serial..."
+            placeholder="Tracking number or serial number"
             value={searchInput}
             onChange={handleSearchChange}
           />
@@ -207,7 +194,7 @@ export default function Returns() {
               value={warehouseId}
               onChange={handleWarehouseChange}
             >
-              <option value="">All Warehouses</option>
+              <option value="">All warehouses</option>
               {warehouses.map((wh) => (
                 <option key={wh.warehouse_id} value={wh.warehouse_id}>
                   {wh.warehouse_code} - {wh.facility_name}
@@ -218,14 +205,9 @@ export default function Returns() {
         )}
 
         {hasActiveFilters && (
-          <div className="filter-group" style={{ justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="btn-secondary"
-              style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
-            >
-              Reset Filters
+          <div className="filter-group">
+            <button type="button" onClick={handleClearFilters} className="btn-secondary">
+              Clear filters
             </button>
           </div>
         )}
@@ -234,7 +216,7 @@ export default function Returns() {
       {error && (
         <div className="error-banner" role="alert">
           <div>
-            <strong>Error loading returns:</strong> {error}
+            <strong>Couldn't load returns.</strong> {error}
           </div>
           <button type="button" className="retry-btn" onClick={fetchReturns}>
             Retry
@@ -242,57 +224,46 @@ export default function Returns() {
         </div>
       )}
 
-      {/* Table container */}
-      <div className="returns-table-wrapper">
-        <table className="returns-table">
+      <div className="table-panel">
+        <table className="data-table stack">
           <thead>
             <tr>
-              <th>Tracking Number</th>
+              <th>Tracking number</th>
               <th>Product</th>
               <th>Warehouse</th>
               <th>Status</th>
-              <th>Return Date</th>
+              <th>Return date</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan="5">
                   <div className="loading-container">
                     <div className="spinner" />
-                    <span>Loading returns pipeline...</span>
+                    <span>Loading returns…</span>
                   </div>
                 </td>
               </tr>
             ) : returns.length === 0 ? (
-              <tr>
+              <tr className="empty-row">
                 <td colSpan="5">
-                  <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
-                    <div className="empty-state-icon">📦</div>
+                  <div className="empty-state-card">
                     <h3 className="empty-state-title">
-                      {hasActiveFilters ? 'No matching returns' : 'No returns found'}
+                      {hasActiveFilters ? 'No returns match these filters' : 'No returns yet'}
                     </h3>
                     <p className="empty-state-desc">
                       {hasActiveFilters
-                        ? 'Try clearing your filters or search keywords to view other returns.'
-                        : 'No returns have been received yet. Click "+ Intake Return" to record the first return.'}
+                        ? 'Clear the filters or try a different search.'
+                        : 'Record the first return when a device arrives at the warehouse.'}
                     </p>
                     {hasActiveFilters ? (
-                      <button
-                        type="button"
-                        onClick={handleClearFilters}
-                        className="btn-secondary"
-                        style={{ marginTop: '0.5rem' }}
-                      >
-                        Clear Filters
+                      <button type="button" onClick={handleClearFilters} className="btn-secondary">
+                        Clear filters
                       </button>
                     ) : (
-                      <Link
-                        to="/returns/new"
-                        className="btn-primary"
-                        style={{ textDecoration: 'none', marginTop: '0.5rem' }}
-                      >
-                        + Intake First Return
+                      <Link to="/returns/new" className="btn-primary">
+                        New return
                       </Link>
                     )}
                   </div>
@@ -302,49 +273,45 @@ export default function Returns() {
               returns.map((item) => (
                 <tr
                   key={item.return_id}
+                  className="clickable"
                   onClick={() => navigate(`/returns/${item.return_id}`)}
                   title={`View Return ${item.return_tracking_number}`}
                 >
-                  <td style={{ fontWeight: 600, color: '#1a237e' }}>
+                  <td className="lead tracking" data-label="Tracking number">
                     {item.return_tracking_number}
                   </td>
-                  <td>
+                  <td data-label="Product">
                     <div>
-                      <strong>{item.brand}</strong> {item.model_name}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#757575' }}>
-                      SKU: {item.sku}
+                      <span className="cell-strong">{item.brand}</span> {item.model_name}
+                      <span className="cell-sub">{item.sku}</span>
                     </div>
                   </td>
-                  <td>
-                    <div>{item.facility_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#757575' }}>
-                      {item.warehouse_code}
+                  <td data-label="Warehouse">
+                    <div>
+                      {item.facility_name}
+                      <span className="cell-sub">{item.warehouse_code}</span>
                     </div>
                   </td>
-                  <td>
-                    <span className={`status-badge ${item.status}`}>
-                      {item.status.replace(/_/g, ' ')}
-                    </span>
+                  <td data-label="Status">
+                    <div>
+                      <span className={`status-tag ${item.status}`}>{statusLabel(item.status)}</span>
+                    </div>
                   </td>
-                  <td>
-                    {formatDateOnly(item.return_date)}
-                  </td>
+                  <td data-label="Return date">{formatDateOnly(item.return_date)}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
 
-        {/* Pagination bar */}
         {!loading && returns.length > 0 && (
           <div className="pagination-controls">
-            <div style={{ fontSize: '0.85rem', color: '#555' }}>
+            <div>
               Showing {(page - 1) * meta.limit + 1}–
               {Math.min(page * meta.limit, meta.total || 0)} of {meta.total || 0} returns
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div className="pager">
               <button
                 type="button"
                 className="pagination-btn"
@@ -353,7 +320,7 @@ export default function Returns() {
               >
                 Previous
               </button>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.5rem' }}>
+              <span className="pager-label">
                 Page {page} of {totalPages}
               </span>
               <button
