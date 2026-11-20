@@ -10,13 +10,20 @@ function errorHandler(err, req, res, next) {
     console.error(err);
   }
 
-  res.status(status).json({
+  const body = {
     success: false,
     message:
       isServerError && env.nodeEnv === 'production'
         ? 'Internal server error'
         : err.message || 'Internal server error',
-  });
+  };
+
+  // Field-level validation errors (see src/utils/validator.js).
+  if (!isServerError && Array.isArray(err.errors) && err.errors.length > 0) {
+    body.errors = err.errors;
+  }
+
+  res.status(status).json(body);
 }
 
 module.exports = errorHandler;
