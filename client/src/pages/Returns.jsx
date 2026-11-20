@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { formatDateOnly } from '../utils/format';
+
+// Wait this long after the last keystroke before searching.
+const SEARCH_DEBOUNCE_MS = 300;
 
 const STATUS_OPTIONS = [
   { label: 'All Statuses', value: '' },
@@ -27,7 +30,9 @@ export default function Returns() {
 
   // Filter states
   const [status, setStatus] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const latestRequest = useRef(0);
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState([]);
   const [page, setPage] = useState(1);
@@ -53,8 +58,22 @@ export default function Returns() {
     };
   }, [isInspector]);
 
-  // Fetch returns list
+  // What the user is typing. `search` (used for the request) follows it after
+  // a short pause, so we don't send a request for every keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch((current) => {
+        if (current !== searchInput) setPage(1);
+        return searchInput;
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Fetch returns list. Each request gets a number; only the newest one's
+  // response is used, so a slow older search can't overwrite newer results.
   const fetchReturns = useCallback(() => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError(null);
 
@@ -70,16 +89,18 @@ export default function Returns() {
     api
       .get('/returns', { params })
       .then((res) => {
+        if (requestId !== latestRequest.current) return;
         setReturns(res.data?.data || []);
         if (res.data?.meta) {
           setMeta(res.data.meta);
         }
       })
       .catch((err) => {
+        if (requestId !== latestRequest.current) return;
         setError(getApiErrorMessage(err));
       })
       .finally(() => {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       });
   }, [page, status, search, warehouseId, isInspector]);
 
@@ -94,8 +115,7 @@ export default function Returns() {
   };
 
   const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setPage(1);
+    setSearchInput(e.target.value);
   };
 
   const handleWarehouseChange = (e) => {
@@ -105,12 +125,13 @@ export default function Returns() {
 
   const handleClearFilters = () => {
     setStatus('');
+    setSearchInput('');
     setSearch('');
     setWarehouseId('');
     setPage(1);
   };
 
-  const hasActiveFilters = Boolean(status || search.trim() || warehouseId);
+  const hasActiveFilters = Boolean(status || searchInput.trim() || warehouseId);
   const totalPages = Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10)));
 
   return (
@@ -156,9 +177,8 @@ export default function Returns() {
             type="text"
             className="filter-input"
             placeholder="Search tracking or serial..."
-            value={search}
+            value={searchInput}
             onChange={handleSearchChange}
-            disabled={loading}
           />
         </div>
 
@@ -169,7 +189,6 @@ export default function Returns() {
             className="filter-select"
             value={status}
             onChange={handleStatusChange}
-            disabled={loading}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -187,7 +206,6 @@ export default function Returns() {
               className="filter-select"
               value={warehouseId}
               onChange={handleWarehouseChange}
-              disabled={loading}
             >
               <option value="">All Warehouses</option>
               {warehouses.map((wh) => (
