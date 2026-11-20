@@ -130,8 +130,8 @@ function buildRationale(type, { P, R, H, grade, status, hasPkg, hasAcc, rev, cos
  * @returns {Object} { recommended_disposition, confidence_score, alternatives }
  */
 function recommend({ product = {}, inspection = {}, returnInfo = {} }) {
-  const P = Number(product.retail_price) || 0;
-  const R = Number(inspection.repair_estimate) || 0;
+  const P = Math.max(0, Number(product.retail_price) || 0);
+  const R = Math.max(0, Number(inspection.repair_estimate) || 0);
   const H = Math.max(200, 0.01 * P);
 
   const grade = inspection.condition_grade || 'Fair';
