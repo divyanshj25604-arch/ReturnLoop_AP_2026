@@ -751,6 +751,152 @@ h1 {
   padding-top: 0.75rem;
 }
 
+/* Dashboard Styling */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-tile {
+  background-color: #ffffff;
+  border-radius: 6px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #78909c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.tile-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #263238;
+  margin-bottom: 0.25rem;
+}
+
+.tile-value.primary {
+  color: #1a237e;
+}
+
+.tile-value.success {
+  color: #2e7d32;
+}
+
+.tile-value.warning {
+  color: #e65100;
+}
+
+.tile-desc {
+  font-size: 0.8rem;
+  color: #757575;
+}
+
+.status-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+}
+
+.status-tile {
+  padding: 1rem 0.5rem;
+  border-radius: 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.status-tile-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.status-tile-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.disposition-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.disposition-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.disp-label {
+  width: 80px;
+  font-weight: 600;
+  color: #37474f;
+}
+
+.disp-track {
+  flex: 1;
+  height: 12px;
+  background-color: #f1f3f5;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.disp-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease-in-out;
+}
+
+.disp-count {
+  width: 25px;
+  text-align: right;
+  font-weight: 700;
+  color: #263238;
+}
+
+.recent-return-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #eeeeee;
+  border-radius: 4px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.recent-return-item:hover {
+  background-color: #f5f7fa;
+  border-color: #cfd8dc;
+}
+
+
 
 
 
