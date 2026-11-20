@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getApiErrorMessage } from '../api/client';
@@ -13,13 +13,25 @@ export default function Login() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // If already logged in, redirect
-  React.useEffect(() => {
-    if (user) {
-      const destination = location.state?.from?.pathname || '/';
-      navigate(destination, { replace: true });
+  // Compute target destination based on user role
+  const getDestination = (loggedInUser) => {
+    const fromPath = location.state?.from?.pathname;
+    if (fromPath && fromPath !== '/login') {
+      // If inspector tried to access dashboard or admin, redirect to returns
+      if (loggedInUser.app_role === 'INSPECTOR' && (fromPath === '/' || fromPath.startsWith('/admin'))) {
+        return '/returns';
+      }
+      return fromPath;
     }
-  }, [user, navigate, location]);
+    // Step 14: supervisors and admins land on / (dashboard); inspectors land on /returns
+    return loggedInUser.app_role === 'INSPECTOR' ? '/returns' : '/';
+  };
+
+  useEffect(() => {
+    if (user) {
+      navigate(getDestination(user), { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,9 +44,8 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      await login(email.trim(), password);
-      const destination = location.state?.from?.pathname || '/';
-      navigate(destination, { replace: true });
+      const loggedInUser = await login(email.trim(), password);
+      navigate(getDestination(loggedInUser), { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
