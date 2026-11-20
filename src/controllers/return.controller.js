@@ -1,9 +1,19 @@
 const Return = require('../models/return.model');
 const db = require('../config/db');
+const parseId = require('../utils/parseId');
+const {
+  isRestrictedToOwnWarehouse,
+  scopeWarehouseFilter,
+  loadReturnForUser,
+  assertCanCreateInWarehouse,
+} = require('../services/returnAccess.service');
 
 async function getAllReturns(req, res, next) {
   try {
-    const returns = await Return.findAll({ status: req.query.status });
+    const returns = await Return.findAll({
+      status: req.query.status,
+      warehouse_id: scopeWarehouseFilter(req.user, parseId(req.query.warehouse_id)),
+    });
     res.status(200).json({
       success: true,
       data: returns,
@@ -23,13 +33,7 @@ async function getReturnById(req, res, next) {
       });
     }
 
-    const returnItem = await Return.findById(returnId);
-    if (!returnItem) {
-      return res.status(404).json({
-        success: false,
-        message: `Return with ID ${returnId} not found`,
-      });
-    }
+    const returnItem = await loadReturnForUser(returnId, req.user);
 
     res.status(200).json({
       success: true,
@@ -82,7 +86,10 @@ async function createReturn(req, res, next) {
       }
     }
 
-    const resolvedWarehouseId = warehouse_id || 1;
+    // Inspectors default to their own warehouse and may not use another one.
+    const resolvedWarehouseId =
+      warehouse_id || (isRestrictedToOwnWarehouse(req.user) ? req.user.warehouse_id : 1);
+    assertCanCreateInWarehouse(req.user, Number(resolvedWarehouseId));
 
     if (!return_reason || typeof return_reason !== 'string' || !return_reason.trim()) {
       return res.status(400).json({

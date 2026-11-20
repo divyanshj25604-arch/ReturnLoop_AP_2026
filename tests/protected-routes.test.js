@@ -52,7 +52,15 @@ test('protected routes return 401 without a token', async () => {
 });
 
 test('protected routes work with a valid token', async () => {
-  for (const path of PROTECTED) {
+  // The inspector can only open returns from their own warehouse (step 13).
+  const own = await db.query(
+    `SELECT r.return_id FROM returns r
+     JOIN operators o ON o.warehouse_id = r.warehouse_id
+     WHERE o.email = $1 LIMIT 1`,
+    [INSPECTOR_EMAIL]
+  );
+  const paths = ['/products', '/products/1', '/returns', `/returns/${own.rows[0].return_id}`];
+  for (const path of paths) {
     const res = await get(path, inspectorToken);
     assert.equal(res.status, 200, path);
   }

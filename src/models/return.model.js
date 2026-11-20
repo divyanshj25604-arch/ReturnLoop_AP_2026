@@ -25,10 +25,20 @@ async function findAll(filters = {}) {
     LEFT JOIN warehouses w ON r.warehouse_id = w.warehouse_id
   `;
   const params = [];
+  const conditions = [];
 
   if (filters.status) {
     params.push(filters.status);
-    queryText += ` WHERE r.status = $${params.length}`;
+    conditions.push(`r.status = $${params.length}`);
+  }
+
+  if (filters.warehouse_id) {
+    params.push(filters.warehouse_id);
+    conditions.push(`r.warehouse_id = $${params.length}`);
+  }
+
+  if (conditions.length > 0) {
+    queryText += ` WHERE ${conditions.join(' AND ')}`;
   }
 
   queryText += ' ORDER BY r.return_id ASC';
