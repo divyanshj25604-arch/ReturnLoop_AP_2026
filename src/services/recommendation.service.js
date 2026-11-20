@@ -2,7 +2,36 @@
 // Return Loop — Decision Intelligence Recommendation Engine
 // Module: src/services/recommendation.service.js
 // Author: Shreyansh Rathaur (SR)
-// Step: [step 17] Confidence score and rationale text
+// Step: [step 26] Document the engine scoring rules, formulas & rationale
+//
+// 1. INPUTS:
+//    - product.retail_price: Catalog retail price P (INR, >= 0).
+//    - inspection.condition_grade: 'Excellent' (G=0.85), 'Good' (G=0.70), 'Fair' (G=0.50), 'Damaged' (G=0.25).
+//    - inspection.functional_status: 'Fully Functional', 'Minor Glitch', 'Defective Hardware', 'Non-functional'.
+//    - inspection.repair_estimate: Diagnostic repair cost R (INR, >= 0).
+//    - inspection.has_original_packaging & has_all_accessories: Booleans required for pristine 'Exchange'.
+//    - Handling cost: H = Math.max(200, 0.01 * P).
+//
+// 2. DISPOSITION RULES & FEASIBILITY:
+//    - Resell:     Rev = P * G;    Cost = H;       Feasibility = 0.95 (Full+Exc/Good), 0.60 (Full+Fair), 0.30 (Minor Glitch), 0 otherwise.
+//    - Refurbish:  Rev = P * 0.65; Cost = R + H;   Feasibility = 0.10 (if R > 0.6*P), else 0.90 (Minor), 0.80 (Defective), 0.50 (Full), 0.20 (Non-func).
+//    - Exchange:   Rev = P * G;    Cost = H;       Feasibility = 0.90 (Full+Exc+Pkg+Acc), 0.50 (Full+Good), 0 otherwise.
+//    - Donate:     Rev = P * 0.10; Cost = H;       Feasibility = 0.70 (Full/Minor), 0.10 otherwise.
+//    - Recycle:    Rev = P * 0.03; Cost = H * 0.5; Feasibility = 1.00 always.
+//    - Write-off:  Rev = 0;        Cost = 0;       Feasibility = 1.00 always.
+//
+// 3. SCORING, RANKING & TIE BREAKING:
+//    - net_expected_recovery = roundMoney(estimated_revenue - estimated_cost)
+//    - score = roundScore(net_expected_recovery * feasibility_score)
+//    - Ranked descending by score; ties broken by: Resell > Refurbish > Exchange > Donate > Recycle > Write-off.
+//
+// 4. CONFIDENCE SCORE:
+//    - Let s1 = top score, s2 = runner-up score.
+//    - If s1 <= 0: confidence = 0.500.
+//    - Else: clamp(0.5 + 0.5 * (s1 - s2) / s1, 0, 1), rounded to 3 decimal places.
+//
+// 5. RATIONALE:
+//    - Generates a non-empty, plain-English explanation for all 6 evaluated dispositions.
 // ============================================================================
 
 const DISPOSITION_ORDER = [

@@ -318,3 +318,34 @@ This schema was purposefully engineered to facilitate Parth's normalization docu
 * **Functional Statuses:** `'Fully Functional'`, `'Minor Glitch'`, `'Defective Hardware'`, `'Non-functional'`
 * **Application Roles (RBAC):** `'ADMIN'`, `'SUPERVISOR'`, `'INSPECTOR'`
 * **Return Statuses:** `'RECEIVED'`, `'UNDER_INSPECTION'`, `'EVALUATED'`, `'DECIDED'`, `'COMPLETED'`, `'CANCELLED'`
+
+
+---
+
+## 8. Recommendation Engine Architecture & Decision Logic
+
+*(Detailed specification also documented in `docs/engine.md` and implemented in `src/services/recommendation.service.js`).*
+
+### 8.1 Mathematical Model & Input Mapping
+For a product with catalog retail price $P$, inspected condition grade factor $G \in \{0.85, 0.70, 0.50, 0.25\}$, repair cost estimate $R$, and minimum handling cost $H = \max(200, 0.01 \times P)$:
+
+1. **Revenue & Cost Formulas:**
+   - **Resell:** $\text{Rev} = P \times G$, $\text{Cost} = H$
+   - **Refurbish:** $\text{Rev} = P \times 0.65$, $\text{Cost} = R + H$
+   - **Exchange:** $\text{Rev} = P \times G$, $\text{Cost} = H$
+   - **Donate:** $\text{Rev} = P \times 0.10$, $\text{Cost} = H$
+   - **Recycle:** $\text{Rev} = P \times 0.03$, $\text{Cost} = H \times 0.5$
+   - **Write-off:** $\text{Rev} = 0$, $\text{Cost} = 0$
+
+2. **Feasibility Scoring Matrix:**
+   - **Resell:** `0.95` (Fully Functional + Excellent/Good), `0.60` (Fully Functional + Fair), `0.30` (Minor Glitch), otherwise `0.00`.
+   - **Refurbish:** `0.10` (if $R > 0.6 \times P$), else `0.90` (Minor Glitch), `0.80` (Defective Hardware), `0.50` (Fully Functional), `0.20` (Non-functional), `0.10` otherwise.
+   - **Exchange:** `0.90` (Fully Functional + Excellent + Packaging + Accessories), `0.50` (Fully Functional + Good), otherwise `0.00`.
+   - **Donate:** `0.70` (Fully Functional or Minor Glitch), `0.10` otherwise.
+   - **Recycle & Write-off:** Always `1.00`.
+
+3. **Ranking & Confidence Score:**
+   - Each alternative is scored via $\text{Score} = \text{Net Expected Recovery} \times \text{Feasibility}$.
+   - Alternatives are sorted descending by score; ties broken by standard business priority order (`Resell` $\succ$ `Refurbish` $\succ$ `Exchange` $\succ$ `Donate` $\succ$ `Recycle` $\succ$ `Write-off`).
+   - Confidence score between top rank ($s_1$) and runner-up ($s_2$):
+     $$\text{Confidence} = \begin{cases} 0.500 & \text{if } s_1 \le 0 \\ \text{clamp}\left(0.5 + 0.5 \times \frac{s_1 - s_2}{s_1}, 0, 1\right) & \text{if } s_1 > 0 \end{cases}$$
