@@ -511,4 +511,148 @@ h1 {
   background-color: #4caf50;
 }
 
+/* Recommendations & Decisions */
+.confidence-pill {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  background-color: #e8eaf6;
+  color: #1a237e;
+  border: 1px solid #c5cae9;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.badge-override {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  background-color: #ffe0b2;
+  color: #e65100;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.badge-accepted {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.rec-card {
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  padding: 1.25rem;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  position: relative;
+}
+
+.rec-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.rec-card.recommended-option {
+  border: 2px solid #2e7d32;
+  background-color: #f1f8e9;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);
+}
+
+.rec-card.selected-disposition {
+  border: 2px solid #1a237e;
+  background-color: #e8eaf6;
+}
+
+.rec-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rec-rank {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #78909c;
+}
+
+.rec-title {
+  font-size: 1.1rem;
+  color: #263238;
+}
+
+.rec-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  background-color: #2e7d32;
+  color: #ffffff;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.final-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  background-color: #1a237e;
+  color: #ffffff;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rec-metric-primary {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #78909c;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1b5e20;
+}
+
+.rec-metrics-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #546e7a;
+  margin-bottom: 0.75rem;
+}
+
+.rec-rationale {
+  font-size: 0.85rem;
+  color: #37474f;
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #e0e0e0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+
 

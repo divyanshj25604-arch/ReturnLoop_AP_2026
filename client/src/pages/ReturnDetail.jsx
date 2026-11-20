@@ -19,9 +19,12 @@ const FUNCTIONAL_STATUSES = [
   'Non-functional',
 ];
 
+const ALL_DISPOSITIONS = ['Resell', 'Refurbish', 'Exchange', 'Donate', 'Recycle', 'Write-off'];
+
 export default function ReturnDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isSupervisorOrAdmin = hasRole('SUPERVISOR');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,15 +44,51 @@ export default function ReturnDetail() {
   const [submittingInspection, setSubmittingInspection] = useState(false);
   const [inspectionFieldErrors, setInspectionFieldErrors] = useState({});
 
+  // Recommendation & Decision states
+  const [recommendation, setRecommendation] = useState(null);
+  const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+  const [recError, setRecError] = useState(null);
+
+  // Decision form states (for supervisor)
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [selectedDisposition, setSelectedDisposition] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [submittingDecision, setSubmittingDecision] = useState(false);
+  const [decisionError, setDecisionError] = useState(null);
+
   const loadReturnDetail = useCallback(() => {
     setLoading(true);
     setError(null);
     setActionError(null);
+    setDecisionError(null);
 
     api
       .get(`/returns/${id}`)
       .then((res) => {
-        setData(res.data?.data || null);
+        const returnData = res.data?.data || null;
+        setData(returnData);
+
+        // If status is EVALUATED, fetch real-time recommendation
+        if (returnData?.return?.status === 'EVALUATED') {
+          setLoadingRecommendation(true);
+          api
+            .get(`/returns/${id}/recommendation`)
+            .then((recRes) => {
+              setRecommendation(recRes.data?.data || null);
+              if (recRes.data?.data?.recommended_disposition) {
+                // Default override selection to a different disposition
+                const recDisp = recRes.data.data.recommended_disposition;
+                const alt = ALL_DISPOSITIONS.find((d) => d !== recDisp) || 'Resell';
+                setSelectedDisposition(alt);
+              }
+            })
+            .catch((rErr) => {
+              setRecError(getApiErrorMessage(rErr));
+            })
+            .finally(() => {
+              setLoadingRecommendation(false);
+            });
+        }
       })
       .catch((err) => {
         setError(getApiErrorMessage(err));
@@ -93,7 +132,6 @@ export default function ReturnDetail() {
 
     try {
       await api.post(`/returns/${id}/inspections`, payload);
-      // Reset optional fields
       setDiagnosticNotes('');
       loadReturnDetail();
     } catch (err) {
@@ -108,6 +146,45 @@ export default function ReturnDetail() {
       setActionError(getApiErrorMessage(err));
     } finally {
       setSubmittingInspection(false);
+    }
+  };
+
+  const handleAcceptRecommendation = async () => {
+    if (!recommendation?.recommended_disposition) return;
+    setSubmittingDecision(true);
+    setDecisionError(null);
+    try {
+      await api.post(`/returns/${id}/decision`, {
+        final_disposition: recommendation.recommended_disposition,
+      });
+      loadReturnDetail();
+    } catch (err) {
+      setDecisionError(getApiErrorMessage(err));
+    } finally {
+      setSubmittingDecision(false);
+    }
+  };
+
+  const handleOverrideSubmit = async (e) => {
+    e.preventDefault();
+    if (!overrideReason.trim()) {
+      setDecisionError('An override reason is required when deviating from the recommendation.');
+      return;
+    }
+    setSubmittingDecision(true);
+    setDecisionError(null);
+    try {
+      await api.post(`/returns/${id}/decision`, {
+        final_disposition: selectedDisposition,
+        override_reason: overrideReason.trim(),
+      });
+      setOverrideOpen(false);
+      setOverrideReason('');
+      loadReturnDetail();
+    } catch (err) {
+      setDecisionError(getApiErrorMessage(err));
+    } finally {
+      setSubmittingDecision(false);
     }
   };
 
@@ -146,11 +223,14 @@ export default function ReturnDetail() {
   const ret = data.return;
   const inspections = data.inspections || [];
   const status = ret.status;
+  const decision = data.decision;
+  const alternatives = data.alternatives || [];
 
   const currentStepIdx = LIFECYCLE_STEPS.findIndex((s) => s.key === status);
   const isCancelled = status === 'CANCELLED';
-
   const canInspect = ['RECEIVED', 'UNDER_INSPECTION', 'EVALUATED'].includes(status);
+  const isEvaluated = status === 'EVALUATED';
+  const isDecidedOrLater = ['DECIDED', 'COMPLETED'].includes(status) || Boolean(decision);
 
   return (
     <div className="page-return-detail" style={{ maxWidth: '960px', margin: '0 auto' }}>
@@ -268,6 +348,265 @@ export default function ReturnDetail() {
         </div>
       </div>
 
+      {/* Decision Section (When status is DECIDED or COMPLETED) */}
+      {isDecidedOrLater && decision && (
+        <div className="detail-card decision-card" style={{ marginBottom: '1.5rem', borderLeft: '6px solid #1a237e' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+            <div>
+              <span className="info-label">Disposition Decision</span>
+              <h2 style={{ margin: '0.25rem 0', color: '#1a237e', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                Final: {decision.final_disposition}
+                {decision.is_override ? (
+                  <span className="badge-override">OVERRIDDEN</span>
+                ) : (
+                  <span className="badge-accepted">RECOMMENDATION ACCEPTED</span>
+                )}
+              </h2>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="confidence-pill">
+                Confidence: {(Number(decision.confidence_score) * 100).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem', background: '#f5f7fa', padding: '1rem', borderRadius: '4px' }}>
+            <div>
+              <span className="info-label">Recommended</span>
+              <span className="info-value" style={{ fontWeight: 600 }}>
+                {decision.recommended_disposition}
+              </span>
+            </div>
+            <div>
+              <span className="info-label">Decided By</span>
+              <span className="info-value">
+                {decision.decided_by_name || `Operator #${decision.decided_by_operator_id}`}
+              </span>
+            </div>
+            <div>
+              <span className="info-label">Decided Date</span>
+              <span className="info-value">
+                {decision.decided_at ? new Date(decision.decided_at).toLocaleString() : '—'}
+              </span>
+            </div>
+          </div>
+
+          {decision.is_override && (
+            <div style={{ padding: '0.75rem 1rem', background: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: '4px', marginBottom: '1rem' }}>
+              <strong style={{ color: '#e65100' }}>Override Justification:</strong>
+              <p style={{ margin: '0.25rem 0 0 0', color: '#bf360c' }}>{decision.override_reason}</p>
+            </div>
+          )}
+
+          {/* Saved Alternatives */}
+          {alternatives.length > 0 && (
+            <div style={{ marginTop: '1.25rem' }}>
+              <h4 style={{ margin: '0 0 0.75rem 0', color: '#37474f' }}>Evaluated Disposition Alternatives</h4>
+              <div className="recommendation-grid">
+                {alternatives.map((alt) => (
+                  <div
+                    key={alt.alternative_id || alt.disposition_type}
+                    className={`rec-card ${alt.disposition_type === decision.final_disposition ? 'selected-disposition' : ''} ${alt.is_recommended ? 'recommended-option' : ''}`}
+                  >
+                    <div className="rec-card-header">
+                      <span className="rec-rank">#{alt.rank_order}</span>
+                      <strong className="rec-title">{alt.disposition_type}</strong>
+                      {alt.is_recommended && <span className="rec-badge">Recommended</span>}
+                      {alt.disposition_type === decision.final_disposition && (
+                        <span className="final-badge">Final</span>
+                      )}
+                    </div>
+                    <div className="rec-metric-primary">
+                      <span className="metric-label">Net Recovery</span>
+                      <span className="metric-value">₹{Number(alt.net_expected_recovery).toLocaleString()}</span>
+                    </div>
+                    <div className="rec-metrics-row">
+                      <div>
+                        <span>Revenue:</span> ₹{Number(alt.estimated_revenue).toLocaleString()}
+                      </div>
+                      <div>
+                        <span>Cost:</span> ₹{Number(alt.estimated_cost).toLocaleString()}
+                      </div>
+                      <div>
+                        <span>Feasibility:</span> {(Number(alt.feasibility_score) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                    {alt.rationale && <p className="rec-rationale">{alt.rationale}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Live Recommendation Section (When status is EVALUATED) */}
+      {isEvaluated && (
+        <div className="detail-card" style={{ marginBottom: '1.5rem', border: '2px solid #3f51b5' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.3rem', margin: 0, color: '#1a237e' }}>
+                Decision Intelligence Recommendations
+              </h2>
+              <p style={{ margin: '0.25rem 0 0 0', color: '#555', fontSize: '0.9rem' }}>
+                Algorithmic disposition scoring based on physical condition grade, functional diagnostics, and financial recovery models.
+              </p>
+            </div>
+            {recommendation && (
+              <span className="confidence-pill" style={{ fontSize: '0.95rem' }}>
+                Engine Confidence: {(Number(recommendation.confidence_score) * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+
+          {decisionError && (
+            <div
+              role="alert"
+              style={{
+                padding: '0.85rem 1rem',
+                background: '#ffebee',
+                color: '#c62828',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+                border: '1px solid #ef9a9a',
+              }}
+            >
+              {decisionError}
+            </div>
+          )}
+
+          {loadingRecommendation ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+              Computing optimal disposition rankings...
+            </div>
+          ) : recError ? (
+            <div role="alert" style={{ padding: '1rem', background: '#ffebee', color: '#c62828', borderRadius: '4px' }}>
+              {recError}
+            </div>
+          ) : recommendation ? (
+            <>
+              {/* Supervisor Decision Controls */}
+              {isSupervisorOrAdmin && (
+                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: '#e8eaf6', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                      <strong style={{ fontSize: '1rem', color: '#1a237e' }}>Supervisor Decision Required:</strong>
+                      <span style={{ display: 'block', fontSize: '0.9rem', color: '#455a64' }}>
+                        Accept the top recommendation (<strong>{recommendation.recommended_disposition}</strong>) or record an override.
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleAcceptRecommendation}
+                        disabled={submittingDecision}
+                        className="btn-primary"
+                        style={{ backgroundColor: '#2e7d32' }}
+                      >
+                        {submittingDecision ? 'Recording...' : `Accept ${recommendation.recommended_disposition}`}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setOverrideOpen((prev) => !prev)}
+                        disabled={submittingDecision}
+                        className="btn-secondary"
+                      >
+                        {overrideOpen ? 'Cancel Override' : 'Override Recommendation'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {overrideOpen && (
+                    <form onSubmit={handleOverrideSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid #c5cae9', paddingTop: '1.25rem' }}>
+                      <h4 style={{ margin: '0 0 0.75rem 0', color: '#1a237e' }}>Record Disposition Override</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label htmlFor="override-disposition">Select Target Disposition *</label>
+                          <select
+                            id="override-disposition"
+                            value={selectedDisposition}
+                            onChange={(e) => setSelectedDisposition(e.target.value)}
+                            className="form-control"
+                            required
+                          >
+                            {ALL_DISPOSITIONS.map((d) => (
+                              <option key={d} value={d}>
+                                {d} {d === recommendation.recommended_disposition ? '(Engine Pick)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label htmlFor="override-reason">Reason for Override *</label>
+                          <input
+                            id="override-reason"
+                            type="text"
+                            placeholder="e.g. Partner NGO requested this model for school program"
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            className="form-control"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button
+                          type="submit"
+                          disabled={submittingDecision}
+                          className="btn-primary"
+                          style={{ backgroundColor: '#e65100' }}
+                        >
+                          {submittingDecision ? 'Submitting Override...' : 'Confirm Override'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* 6 Ranked Recommendation Cards */}
+              <div className="recommendation-grid">
+                {(recommendation.alternatives || []).map((alt) => (
+                  <div
+                    key={alt.disposition_type}
+                    className={`rec-card ${alt.is_recommended ? 'recommended-option' : ''}`}
+                  >
+                    <div className="rec-card-header">
+                      <span className="rec-rank">#{alt.rank_order}</span>
+                      <strong className="rec-title">{alt.disposition_type}</strong>
+                      {alt.is_recommended && <span className="rec-badge">Recommended</span>}
+                    </div>
+
+                    <div className="rec-metric-primary">
+                      <span className="metric-label">Net Expected Recovery</span>
+                      <span className="metric-value">₹{Number(alt.net_expected_recovery).toLocaleString()}</span>
+                    </div>
+
+                    <div className="rec-metrics-row">
+                      <div>
+                        <span>Est. Revenue:</span> ₹{Number(alt.estimated_revenue).toLocaleString()}
+                      </div>
+                      <div>
+                        <span>Est. Cost:</span> ₹{Number(alt.estimated_cost).toLocaleString()}
+                      </div>
+                      <div>
+                        <span>Feasibility:</span> {(Number(alt.feasibility_score) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+
+                    {alt.rationale && <p className="rec-rationale">{alt.rationale}</p>}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
+
       {/* Inspection Actions and Form */}
       {status === 'RECEIVED' && (
         <div className="detail-card" style={{ marginBottom: '1.5rem', background: '#e8eaf6', borderColor: '#c5cae9' }}>
@@ -296,7 +635,7 @@ export default function ReturnDetail() {
             {inspections.length > 0 ? 'Record Additional / Updated Inspection' : 'Record Initial Inspection'}
           </h2>
           <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            Submitting this inspection transitions this return into <strong>EVALUATED</strong> and triggers the decision intelligence engine.
+            Submitting an inspection transitions this return into <strong>EVALUATED</strong> and triggers the decision intelligence engine.
           </p>
 
           <form onSubmit={handleInspectionSubmit}>
