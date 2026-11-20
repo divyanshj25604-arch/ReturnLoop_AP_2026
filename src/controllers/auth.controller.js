@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const Operator = require('../models/operator.model');
 const ApiError = require('../utils/ApiError');
 const { createValidator } = require('../utils/validator');
-const { signToken, verifyToken, getBearerToken } = require('../utils/token');
+const { signToken } = require('../utils/token');
 
 const BCRYPT_ROUNDS = 10;
 const MIN_PASSWORD_LENGTH = 8;
@@ -29,20 +29,6 @@ function toUser(operator) {
     app_role: operator.app_role,
     warehouse_id: operator.warehouse_id,
   };
-}
-
-// Temporary token check for /me and /password. Step 10 replaces this with the
-// shared requireAuth middleware.
-async function getCurrentOperator(req) {
-  const payload = verifyToken(getBearerToken(req));
-  if (!payload) {
-    throw ApiError.unauthorized('Missing, invalid or expired token');
-  }
-  const operator = await Operator.findById(payload.sub);
-  if (!operator || !operator.is_active) {
-    throw ApiError.unauthorized('Missing, invalid or expired token');
-  }
-  return operator;
 }
 
 async function login(req, res, next) {
@@ -76,8 +62,7 @@ async function login(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const operator = await getCurrentOperator(req);
-    res.status(200).json({ success: true, data: toUser(operator) });
+    res.status(200).json({ success: true, data: toUser(req.user) });
   } catch (err) {
     next(err);
   }
@@ -85,8 +70,6 @@ async function me(req, res, next) {
 
 async function changePassword(req, res, next) {
   try {
-    const current = await getCurrentOperator(req);
-
     const v = createValidator(req.body)
       .string('current_password', { required: true })
       .string('new_password', { required: true });
@@ -101,7 +84,7 @@ async function changePassword(req, res, next) {
     }
     v.throwIfErrors();
 
-    const operator = await Operator.findByIdWithPassword(current.operator_id);
+    const operator = await Operator.findByIdWithPassword(req.user.operator_id);
     const passwordOk = await bcrypt.compare(req.body.current_password, operator.password_hash);
     if (!passwordOk) {
       throw ApiError.unauthorized('Current password is incorrect');

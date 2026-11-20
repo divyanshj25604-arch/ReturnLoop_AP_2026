@@ -3,12 +3,16 @@ const healthRoutes = require('./health.routes');
 const authRoutes = require('./auth.routes');
 const productRoutes = require('./product.routes');
 const returnRoutes = require('./return.routes');
+const { requireAuth } = require('../middleware/auth');
 
 const router = Router();
 
+// Public: /health and /auth/login (auth.routes protects /me and /password itself).
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
-router.use('/products', productRoutes);
-router.use('/returns', returnRoutes);
+
+// Everything below needs a valid token.
+router.use('/products', requireAuth, productRoutes);
+router.use('/returns', requireAuth, returnRoutes);
 
 module.exports = router;
