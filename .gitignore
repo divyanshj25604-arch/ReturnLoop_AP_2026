@@ -1,5 +1,10 @@
 # Dependencies
 node_modules/
+client/node_modules/
+
+# Build artifacts
+dist/
+client/dist/
 
 # Environment variables (keep .env.example)
 .env
