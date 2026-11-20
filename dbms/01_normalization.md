@@ -4,7 +4,7 @@
 **Role:** Database Normalization Documentation  
 **Contributor:** Devanshi Kumari  
 **Assignment:** AP CP1  
-**Collaboration Reference:** Coordinated with Database Architecture (`dbms/00_database_design.md`), SQL Schema (`dbms/02_schema.sql`), and ER Documentation (`dbms/03_er_diagram.md`).
+**Collaboration Reference:** Coordinated with Database Architecture (`dbms/00_database_design.md`), SQL Schema (`dbms/03_schema.sql`), and ER Documentation (`dbms/02_er_diagram.md`).
 
 ---
 

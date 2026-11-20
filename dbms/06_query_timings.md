@@ -4,13 +4,13 @@
 **Role:** Database Queries & Testing / ER Documentation (Devanshi Kumari)  
 **Assignment:** AP CP1  
 **Database Engine:** PostgreSQL 17.11 (Homebrew on macOS Darwin aarch64)  
-**Source Artifacts:** `dbms/02_schema.sql`, `dbms/03_seed.sql`, `dbms/04_queries.sql`  
+**Source Artifacts:** `dbms/03_schema.sql`, `dbms/04_seed.sql`, `dbms/05_queries.sql`  
 
 ---
 
 ## 1. Test Environment & Verification Summary
 
-All SQL queries defined in `dbms/04_queries.sql` were executed against a live, dedicated PostgreSQL instance (`returnloop_db`). The test suite systematically verified schema constraints, referential integrity, join semantics, grouping aggregations, and transactional DML operations.
+All SQL queries defined in `dbms/05_queries.sql` were executed against a live, dedicated PostgreSQL instance (`returnloop_db`). The test suite systematically verified schema constraints, referential integrity, join semantics, grouping aggregations, and transactional DML operations.
 
 ### Executive Test Metrics
 | Metric | Value | Status |
@@ -499,7 +499,7 @@ During query development and initial execution verification, several edge cases 
 
 ### Issue 1: Generated Column Immutability in DML Updates
 - **Symptom:** In `decision_alternatives` and `decision_outcomes`, columns `net_expected_recovery` and `actual_net_recovery` are defined as `GENERATED ALWAYS AS (...) STORED`.
-- **Correction:** Explicitly excluded generated columns from `INSERT` and `UPDATE` statements in `04_queries.sql`. Allowed PostgreSQL to automatically maintain derived column integrity based on `revenue - cost`.
+- **Correction:** Explicitly excluded generated columns from `INSERT` and `UPDATE` statements in `05_queries.sql`. Allowed PostgreSQL to automatically maintain derived column integrity based on `revenue - cost`.
 
 ### Issue 2: Foreign-Key Restrict Violations on Operational Deletions
 - **Symptom:** Attempting to delete from `returns` directly fails with referential integrity violations if `decision_outcomes` references the associated decision under `ON DELETE RESTRICT`.

@@ -4,7 +4,7 @@
 -- Role: Database Queries & Testing / ER Documentation (Devanshi Kumari)
 -- Assignment: AP CP1
 -- Target Engine: PostgreSQL (v12+)
--- Standards: Executable against Aryansh's relational schema (dbms/02_schema.sql)
+-- Standards: Executable against the relational schema (dbms/03_schema.sql)
 -- ============================================================================
 
 -- ============================================================================

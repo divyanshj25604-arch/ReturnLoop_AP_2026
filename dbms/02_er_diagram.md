@@ -3,7 +3,7 @@
 **Project:** Return Loop (Decision Intelligence Platform for Returned Electronics)  
 **Role:** Database Queries & Testing / ER Documentation (Devanshi Kumari)  
 **Assignment:** AP CP1  
-**Collaboration Note:** Built directly upon Aryansh's approved Database Design (`dbms/00_database_design.md`) and normalized SQL Schema (`dbms/02_schema.sql`).
+**Collaboration Note:** Built directly upon the approved Database Design (`dbms/00_database_design.md`) and normalized SQL Schema (`dbms/03_schema.sql`).
 
 ---
 
@@ -25,7 +25,7 @@ This document formalizes the Entity-Relationship (ER) diagram representing the p
 
 A high-resolution, publication-quality Crow's Foot ER diagram has been rendered and committed as an image asset:
 
-![Return Loop Entity-Relationship Diagram](03_er_diagram.png)
+![Return Loop Entity-Relationship Diagram](02_er_diagram.png)
 
 *Figure 1: Complete Crow's Foot Entity-Relationship Diagram for Return Loop reverse logistics platform.*
 
@@ -161,7 +161,7 @@ erDiagram
 
 ## 5. Entity Data Dictionary & Schema Specification
 
-The schema matches Aryansh's production DDL in `dbms/02_schema.sql` exactly:
+The schema matches the production DDL in `dbms/03_schema.sql` exactly:
 
 ### 5.1 `products` (Master Catalog)
 * **Purpose:** Serves as the authoritative master catalog for electronic items processed in the reverse supply chain.
@@ -258,7 +258,7 @@ The schema matches Aryansh's production DDL in `dbms/02_schema.sql` exactly:
 
 This ER documentation and accompanying visual diagram have been verified against:
 - **Database Architecture Document:** `dbms/00_database_design.md`
-- **Physical Schema DDL:** `dbms/02_schema.sql`
-- **Initial Seed Dataset:** `dbms/03_seed.sql`
+- **Physical Schema DDL:** `dbms/03_schema.sql`
+- **Initial Seed Dataset:** `dbms/04_seed.sql`
 
-All table names, column identifiers, foreign-key linkages, and check constraints match Aryansh's approved schema with 100% fidelity.
+All table names, column identifiers, foreign-key linkages, and check constraints match the approved schema with 100% fidelity.

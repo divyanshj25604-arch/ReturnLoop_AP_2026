@@ -3,7 +3,7 @@
 **Project:** Return Loop (Decision Intelligence Platform for Returned Electronics)  
 **Role:** Database Architect (Shreyansh Rathaur)  
 **Assignment:** AP CP1  
-**Collaboration Note:** Coordinated with Parth (`01_normalization.md`) and Devanshi (`04_queries.sql`).
+**Collaboration Note:** Coordinated with Parth (`01_normalization.md`) and Devanshi (`05_queries.sql`).
 
 ---
 
@@ -300,7 +300,7 @@ This schema was purposefully engineered to facilitate Parth's normalization docu
 
 ## 7. Hand-off Reference for Team Collaboration
 
-### Table Names & Key Mappings for Devanshi (`04_queries.sql`):
+### Table Names & Key Mappings for Devanshi (`05_queries.sql`):
 * `products (product_id, sku, brand, model_name, category, retail_price, created_at)`
 * `warehouses (warehouse_id, warehouse_code, facility_name, city, state, capacity, created_at)`
 * `operators (operator_id, employee_code, full_name, email, role, warehouse_id, is_active, created_at)`
