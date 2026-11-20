@@ -83,6 +83,8 @@ The relational architecture models eight fundamental entities designed to avoid 
 | | `employee_code` | `VARCHAR(20)` | `UNIQUE, NOT NULL` | Organization employee ID (e.g. OP-101) |
 | | `full_name` | `VARCHAR(100)` | `NOT NULL` | Full name of the operator |
 | | `email` | `VARCHAR(120)` | `UNIQUE, NOT NULL` | Corporate email address |
+| | `password_hash` | `VARCHAR(255)` | `NOT NULL` | Bcrypt password hash for authentication |
+| | `app_role` | `VARCHAR(20)` | `NOT NULL, DEFAULT 'INSPECTOR', CHECK (IN ...)` | Application RBAC role (`ADMIN`, `SUPERVISOR`, `INSPECTOR`) |
 | | `role` | `VARCHAR(50)` | `NOT NULL` | Functional job title |
 | | `warehouse_id` | `INT` | `FK, NOT NULL, REFERENCES warehouses` | Primary assigned facility |
 | | `is_active` | `BOOLEAN` | `NOT NULL, DEFAULT TRUE` | Active employment status flag |
@@ -103,7 +105,7 @@ The relational architecture models eight fundamental entities designed to avoid 
 | | `condition_grade` | `VARCHAR(20)` | `NOT NULL, CHECK (IN ...)` | Physical grade (`Excellent`, `Good`, `Fair`, `Damaged`) |
 | | `has_original_packaging` | `BOOLEAN` | `NOT NULL, DEFAULT FALSE` | Packaging completeness indicator |
 | | `has_all_accessories` | `BOOLEAN` | `NOT NULL, DEFAULT FALSE` | Accessory completeness indicator |
-| | `functional_status` | `VARCHAR(50)` | `NOT NULL` | Functional test result summary |
+| | `functional_status` | `VARCHAR(50)` | `NOT NULL, CHECK (IN ...)` | Functional status (`Fully Functional`, `Minor Glitch`, `Defective Hardware`, `Non-functional`) |
 | | `repair_estimate` | `NUMERIC(10,2)` | `NOT NULL, DEFAULT 0, CHECK (>= 0)` | Estimated repair/refurbishment cost in INR |
 | | `diagnostic_notes` | `TEXT` | `NULLABLE` | Technician technical observations |
 | | `inspected_at` | `TIMESTAMPTZ` | `NOT NULL, DEFAULT CURRENT_TIMESTAMP` | Inspection completion timestamp |
@@ -230,9 +232,9 @@ To ensure strict compliance with Third Normal Form (3NF) and Boyce-Codd Normal F
 * Primary Key: `{operator_id}`
 * Alternate Keys: `{employee_code}`, `{email}`
 * Functional Dependencies:
-  - $\text{FD}_{3.1}: \{\text{operator\_id}\} \rightarrow \{\text{employee\_code}, \text{full\_name}, \text{email}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
-  - $\text{FD}_{3.2}: \{\text{employee\_code}\} \rightarrow \{\text{operator\_id}, \text{full\_name}, \text{email}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
-  - $\text{FD}_{3.3}: \{\text{email}\} \rightarrow \{\text{operator\_id}, \text{employee\_code}, \text{full\_name}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
+  - $\text{FD}_{3.1}: \{\text{operator\_id}\} \rightarrow \{\text{employee\_code}, \text{full\_name}, \text{email}, \text{password\_hash}, \text{app\_role}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
+  - $\text{FD}_{3.2}: \{\text{employee\_code}\} \rightarrow \{\text{operator\_id}, \text{full\_name}, \text{email}, \text{password\_hash}, \text{app\_role}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
+  - $\text{FD}_{3.3}: \{\text{email}\} \rightarrow \{\text{operator\_id}, \text{employee\_code}, \text{full\_name}, \text{password\_hash}, \text{app\_role}, \text{role}, \text{warehouse\_id}, \text{is\_active}, \text{created\_at}\}$
 * **Normal Form Evaluation:** Every determinant is a candidate key. (Satisfies 3NF / BCNF).
 
 ### 5.4 Relation: `returns`
@@ -303,7 +305,7 @@ This schema was purposefully engineered to facilitate Parth's normalization docu
 ### Table Names & Key Mappings for Devanshi (`05_queries.sql`):
 * `products (product_id, sku, brand, model_name, category, retail_price, created_at)`
 * `warehouses (warehouse_id, warehouse_code, facility_name, city, state, capacity, created_at)`
-* `operators (operator_id, employee_code, full_name, email, role, warehouse_id, is_active, created_at)`
+* `operators (operator_id, employee_code, full_name, email, password_hash, app_role, role, warehouse_id, is_active, created_at)`
 * `returns (return_id, return_tracking_number, product_id, warehouse_id, serial_number, return_reason, return_date, status, customer_comment, created_at)`
 * `inspections (inspection_id, return_id, inspector_id, condition_grade, has_original_packaging, has_all_accessories, functional_status, repair_estimate, diagnostic_notes, inspected_at)`
 * `disposition_decisions (decision_id, return_id, recommended_disposition, final_disposition, decided_by_operator_id, is_override, override_reason, confidence_score, decided_at)`
@@ -313,4 +315,6 @@ This schema was purposefully engineered to facilitate Parth's normalization docu
 ### Permitted Domain Values for CHECK Constraints:
 * **Dispositions (All 6 options):** `'Resell'`, `'Refurbish'`, `'Exchange'`, `'Donate'`, `'Recycle'`, `'Write-off'`
 * **Condition Grades:** `'Excellent'`, `'Good'`, `'Fair'`, `'Damaged'`
+* **Functional Statuses:** `'Fully Functional'`, `'Minor Glitch'`, `'Defective Hardware'`, `'Non-functional'`
+* **Application Roles (RBAC):** `'ADMIN'`, `'SUPERVISOR'`, `'INSPECTOR'`
 * **Return Statuses:** `'RECEIVED'`, `'UNDER_INSPECTION'`, `'EVALUATED'`, `'DECIDED'`, `'COMPLETED'`, `'CANCELLED'`

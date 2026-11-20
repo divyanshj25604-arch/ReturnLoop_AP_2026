@@ -85,6 +85,8 @@ erDiagram
         string employee_code UK "VARCHAR(20)"
         string full_name "VARCHAR(100)"
         string email UK "VARCHAR(120)"
+        string password_hash "VARCHAR(255)"
+        string app_role "CHECK (ADMIN, SUPERVISOR, INSPECTOR)"
         string role "VARCHAR(50)"
         int warehouse_id FK "REFERENCES warehouses"
         boolean is_active "DEFAULT TRUE"
@@ -111,7 +113,7 @@ erDiagram
         string condition_grade "CHECK (Excellent, Good, Fair, Damaged)"
         boolean has_original_packaging "DEFAULT FALSE"
         boolean has_all_accessories "DEFAULT FALSE"
-        string functional_status "VARCHAR(50)"
+        string functional_status "CHECK (4 allowed statuses)"
         numeric repair_estimate "CHECK (>= 0)"
         text diagnostic_notes "NULLABLE"
         timestamptz inspected_at "DEFAULT NOW()"
@@ -182,7 +184,7 @@ The schema matches the production DDL in `dbms/03_schema.sql` exactly:
 * **Primary Key:** `operator_id` (`SERIAL`).
 * **Alternate Keys:** `employee_code` (`VARCHAR(20)`), `email` (`VARCHAR(120)`).
 * **Foreign Key:** `warehouse_id` references `warehouses(warehouse_id)` on delete `RESTRICT`.
-* **Attributes:** `full_name`, `role`, `is_active`, `created_at`.
+* **Attributes:** `full_name`, `password_hash`, `app_role` (`ADMIN`, `SUPERVISOR`, `INSPECTOR`), `role`, `is_active`, `created_at`.
 
 ### 5.4 `returns` (Return Intake Transactions)
 * **Purpose:** Core transaction unit tracking a customer return package through its reverse logistics lifecycle.
@@ -199,7 +201,7 @@ The schema matches the production DDL in `dbms/03_schema.sql` exactly:
 * **Foreign Keys:**
   - `return_id` references `returns(return_id)` on delete `CASCADE`.
   - `inspector_id` references `operators(operator_id)` on delete `RESTRICT`.
-* **Attributes:** `condition_grade` (`Excellent`, `Good`, `Fair`, `Damaged`), `has_original_packaging`, `has_all_accessories`, `functional_status`, `repair_estimate` (>= 0), `diagnostic_notes`, `inspected_at`.
+* **Attributes:** `condition_grade` (`Excellent`, `Good`, `Fair`, `Damaged`), `has_original_packaging`, `has_all_accessories`, `functional_status` (`Fully Functional`, `Minor Glitch`, `Defective Hardware`, `Non-functional`), `repair_estimate` (>= 0), `diagnostic_notes`, `inspected_at`.
 
 ### 5.6 `disposition_decisions` (Decision Intelligence Decisions)
 * **Purpose:** The algorithmically recommended and supervisor-authorized disposition path for a returned unit.

@@ -17,6 +17,9 @@ DROP TABLE IF EXISTS operators CASCADE;
 DROP TABLE IF EXISTS warehouses CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 
+-- Enable pgcrypto extension for cryptographic functions (password hashing)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ----------------------------------------------------------------------------
 -- 1. Table: products
 -- Master catalog of electronic products handled by the reverse logistics pipeline.
@@ -60,6 +63,8 @@ CREATE TABLE operators (
     employee_code       VARCHAR(20) NOT NULL,
     full_name           VARCHAR(100) NOT NULL,
     email               VARCHAR(120) NOT NULL,
+    password_hash       VARCHAR(255) NOT NULL,
+    app_role            VARCHAR(20) NOT NULL DEFAULT 'INSPECTOR',
     role                VARCHAR(50) NOT NULL,
     warehouse_id        INT NOT NULL,
     is_active           BOOLEAN NOT NULL DEFAULT TRUE,
@@ -67,6 +72,9 @@ CREATE TABLE operators (
 
     CONSTRAINT uq_operators_employee_code UNIQUE (employee_code),
     CONSTRAINT uq_operators_email UNIQUE (email),
+    CONSTRAINT chk_operators_app_role CHECK (
+        app_role IN ('ADMIN', 'SUPERVISOR', 'INSPECTOR')
+    ),
     CONSTRAINT fk_operators_warehouse
         FOREIGN KEY (warehouse_id)
         REFERENCES warehouses (warehouse_id)
@@ -129,6 +137,9 @@ CREATE TABLE inspections (
         ON DELETE RESTRICT,
     CONSTRAINT chk_inspections_condition_grade CHECK (
         condition_grade IN ('Excellent', 'Good', 'Fair', 'Damaged')
+    ),
+    CONSTRAINT chk_inspections_functional_status CHECK (
+        functional_status IN ('Fully Functional', 'Minor Glitch', 'Defective Hardware', 'Non-functional')
     ),
     CONSTRAINT chk_inspections_repair_estimate CHECK (repair_estimate >= 0.00)
 );
