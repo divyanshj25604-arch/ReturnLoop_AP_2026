@@ -105,6 +105,19 @@ Return Loop API running on http://localhost:3000 (development)
 
 If the port is already in use, the server logs an error and exits with code 1. Change `PORT` in `.env` to use another port.
 
+### Running the tests
+
+The API tests run against your local PostgreSQL database, so set it up first:
+
+```bash
+npm run db:setup   # build the schema and load the seed data
+npm test
+```
+
+`.env` must contain `DATABASE_URL` and `JWT_SECRET`. Test files run one at a time and delete everything they create, so the seed data is unchanged afterwards. If a test run is interrupted, run `npm run db:setup` again to reset the database.
+
+`tests/full-flow.test.js` walks one return through the whole lifecycle and checks the role and warehouse rules for every endpoint.
+
 ## API
 
 All endpoints are served under the `/api` prefix.
