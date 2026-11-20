@@ -6,6 +6,7 @@ const {
 } = require('../controllers/return.controller');
 const { startInspection, recordInspection } = require('../controllers/inspection.controller');
 const { getRecommendation, makeDecision } = require('../controllers/decision.controller');
+const { recordOutcome, cancelReturn } = require('../controllers/outcome.controller');
 const { requireRole } = require('../middleware/auth');
 
 const router = Router();
@@ -21,5 +22,7 @@ router.get('/:id/recommendation', getRecommendation);
 
 // Supervisor and admin only.
 router.post('/:id/decision', requireRole('SUPERVISOR'), makeDecision);
+router.post('/:id/outcome', requireRole('SUPERVISOR'), recordOutcome);
+router.post('/:id/cancel', requireRole('SUPERVISOR'), cancelReturn);
 
 module.exports = router;
