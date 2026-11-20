@@ -270,9 +270,9 @@ Steps are done strictly in this order, one after another. **A step can only be d
 | 33 | DJ | `test(api): add tests for auth, roles, privacy and full return flow [step 33]` |
 | 34 | DK | `feat(client): add loading, empty and error states [step 34]` |
 | 35 | DJ | `fix: resolve issues found in end-to-end testing [step 35]` |
-| 36 | SR | `docs: update README with setup, test logins and screenshots [step 36]` |
+| 36 | DJ | `docs: update README with setup, test logins and screenshots [step 36]` |
 
-Totals: DJ 14 · DK 13 · SR 9 (36 steps).
+Totals: DJ 15 · DK 13 · SR 8 (36 steps). Step 36 was reassigned from SR to DJ.
 
 ### Why this order: dependencies
 
@@ -622,7 +622,7 @@ Match `docs/api.md` section 5.6 exactly:
 - Fix every bug found. Keep fixes small and inside this one commit. If a fix needs a change to `docs/api.md`, update it and say so in the commit body.
 - **Done when:** the full flow works in the browser for all three roles with no console errors.
 
-### Step 36 (SR): Final README
+### Step 36 (DJ): Final README
 
 - Update `README.md` so a new person can run the project from scratch: prerequisites, `npm install` (root and `client/`), `.env` setup (`DATABASE_URL`, `JWT_SECRET`), `npm run db:setup`, running backend and frontend, the test accounts (emails, roles, password `Devanshi1234`), the API summary (link to `docs/api.md`), the engine summary, and a few screenshots in `docs/screenshots/`.
 - Remove the old "health check only / not yet implemented" text.
