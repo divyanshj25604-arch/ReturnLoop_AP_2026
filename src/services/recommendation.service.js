@@ -2,7 +2,7 @@
 // Return Loop — Decision Intelligence Recommendation Engine
 // Module: src/services/recommendation.service.js
 // Author: Shreyansh Rathaur (SR)
-// Step: [step 12] Recommendation engine baseline rules & scoring
+// Step: [step 17] Confidence score and rationale text
 // ============================================================================
 
 const DISPOSITION_ORDER = [
@@ -27,6 +27,97 @@ function roundMoney(val) {
 
 function roundScore(val) {
   return Math.round((Number(val) || 0) * 1000) / 1000;
+}
+
+/**
+ * Generates a concise, plain-English sentence explaining the score and feasibility
+ * for each candidate disposition pathway.
+ */
+function buildRationale(type, { P, R, H, grade, status, hasPkg, hasAcc, rev, cost, net, feasibility, rankOrder, isRecommended }) {
+  const repairPct = P > 0 ? Math.round((R / P) * 100) : 0;
+
+  switch (type) {
+    case 'Resell': {
+      if (P <= 0) {
+        return 'Zero retail value makes commercial resale unviable.';
+      }
+      if (status === 'Fully Functional' && (grade === 'Excellent' || grade === 'Good')) {
+        return `Item is in ${grade.toLowerCase()} condition and fully functional; high direct resale value with minimal overhead.`;
+      }
+      if (status === 'Fully Functional' && grade === 'Fair') {
+        return 'Item is fully functional, but fair condition reduces secondary market demand and pricing.';
+      }
+      if (status === 'Minor Glitch') {
+        return 'Item has an operational fault, so selling as-is is risky and lowers the price.';
+      }
+      return 'Item is not fully functional, so it cannot be resold as-is.';
+    }
+
+    case 'Refurbish': {
+      if (P > 0 && R > 0.6 * P) {
+        return `Estimated repair cost of ₹${R} (${repairPct}% of retail price) exceeds 60% of retail price, making refurbishment uneconomical.`;
+      }
+      if (status === 'Minor Glitch') {
+        if (isRecommended) {
+          return `Minor glitch with a repair cost of ${repairPct}% of retail price; refurbished resale recovers the most value.`;
+        }
+        return `Minor glitch repair is viable at ₹${R}, but direct resale or exchange yields higher net return.`;
+      }
+      if (status === 'Defective Hardware') {
+        if (isRecommended) {
+          return `Hardware defect can be restored for ₹${R} (${repairPct}% of retail price), yielding positive net recovery via refurbished resale.`;
+        }
+        return `Hardware defect repair is technically feasible for ₹${R}, but other recovery paths are ranked higher.`;
+      }
+      if (status === 'Fully Functional') {
+        return `Item is already fully functional; refurbishment cost of ₹${cost} is unnecessary compared to direct resale.`;
+      }
+      if (status === 'Non-functional') {
+        return 'Item is completely non-functional; repair feasibility is very low and restoration is cost-prohibitive.';
+      }
+      return 'Refurbishment is not viable given the technical condition and restoration cost.';
+    }
+
+    case 'Exchange': {
+      if (status === 'Fully Functional' && grade === 'Excellent' && hasPkg && hasAcc) {
+        return 'Pristine condition with complete original packaging and accessories makes it ideal for customer warranty replacement stock.';
+      }
+      if (status === 'Fully Functional' && grade === 'Good') {
+        return 'Good functional condition qualifies for exchange stock allocation, though cosmetic wear limits priority.';
+      }
+      if (status === 'Fully Functional') {
+        return 'Missing original packaging or accessories prevents re-issuing this unit as customer warranty replacement stock.';
+      }
+      return 'Functional defects disqualify this unit from customer exchange or replacement inventory.';
+    }
+
+    case 'Donate': {
+      if (isRecommended) {
+        return 'Product offers meaningful social impact and tax write-off value through charitable donation channels.';
+      }
+      if (status === 'Fully Functional' || status === 'Minor Glitch') {
+        return 'Product is usable for donation, but commercial recovery paths yield significantly higher financial returns.';
+      }
+      return 'Severe defects or non-functional status make this item unsuitable for charitable donation.';
+    }
+
+    case 'Recycle': {
+      if (isRecommended) {
+        return 'Severe physical damage or hardware failure makes raw material recycling and scrap recovery the most responsible choice.';
+      }
+      return 'Materials can be recycled for salvage scrap value, but higher-value recovery paths are preferable.';
+    }
+
+    case 'Write-off': {
+      if (isRecommended || P <= 0) {
+        return 'No economic recovery is viable; unit must be decommissioned and written off as a complete loss.';
+      }
+      return 'Zero financial recovery; write-off is only appropriate if all reuse and recycling avenues fail.';
+    }
+
+    default:
+      return 'Alternative evaluated based on condition, repair cost, and recovery potential.';
+  }
 }
 
 /**
@@ -64,7 +155,7 @@ function recommend({ product = {}, inspection = {}, returnInfo = {} }) {
 
   // 2. Refurbish
   let refurbFeasibility = 0.0;
-  if (R > 0.6 * P) {
+  if (P > 0 && R > 0.6 * P) {
     refurbFeasibility = 0.10;
   } else if (status === 'Minor Glitch') {
     refurbFeasibility = 0.90;
@@ -132,7 +223,6 @@ function recommend({ product = {}, inspection = {}, returnInfo = {} }) {
       net_expected_recovery: net,
       feasibility_score: feasibility,
       score,
-      rationale: '',
     };
   });
 
@@ -146,6 +236,24 @@ function recommend({ product = {}, inspection = {}, returnInfo = {} }) {
 
   const alternatives = scoredCandidates.map((cand, index) => {
     const rankOrder = index + 1;
+    const isRecommended = rankOrder === 1;
+
+    const rationale = buildRationale(cand.disposition_type, {
+      P,
+      R,
+      H,
+      grade,
+      status,
+      hasPkg,
+      hasAcc,
+      rev: cand.estimated_revenue,
+      cost: cand.estimated_cost,
+      net: cand.net_expected_recovery,
+      feasibility: cand.feasibility_score,
+      rankOrder,
+      isRecommended,
+    });
+
     return {
       disposition_type: cand.disposition_type,
       estimated_revenue: cand.estimated_revenue,
@@ -153,16 +261,30 @@ function recommend({ product = {}, inspection = {}, returnInfo = {} }) {
       net_expected_recovery: cand.net_expected_recovery,
       feasibility_score: cand.feasibility_score,
       rank_order: rankOrder,
-      is_recommended: rankOrder === 1,
-      rationale: cand.rationale,
+      is_recommended: isRecommended,
+      rationale,
     };
   });
 
   const topPick = alternatives[0];
 
+  // Confidence calculation per Step 17:
+  // Let s1 and s2 be the scores of rank 1 and rank 2.
+  // If s1 <= 0, confidence is 0.5.
+  // Otherwise 0.5 + 0.5 * (s1 - s2) / s1, clamped to 0–1, rounded to 3 decimals.
+  const s1 = scoredCandidates[0] ? scoredCandidates[0].score : 0;
+  const s2 = scoredCandidates[1] ? scoredCandidates[1].score : 0;
+
+  let confidence_score = 0.5;
+  if (s1 > 0) {
+    const rawConf = 0.5 + (0.5 * (s1 - s2)) / s1;
+    const clamped = Math.max(0, Math.min(1, rawConf));
+    confidence_score = Math.round(clamped * 1000) / 1000;
+  }
+
   return {
     recommended_disposition: topPick.disposition_type,
-    confidence_score: 0.5, // Fixed placeholder for Step 12; updated in Step 17
+    confidence_score,
     alternatives,
   };
 }
