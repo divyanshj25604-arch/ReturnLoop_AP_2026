@@ -56,17 +56,41 @@ export default function ReturnDetail() {
   const [submittingDecision, setSubmittingDecision] = useState(false);
   const [decisionError, setDecisionError] = useState(null);
 
+  // Cancel form states (before DECIDED, supervisor only)
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [submittingCancel, setSubmittingCancel] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+
+  // Outcome form states (DECIDED status, supervisor only)
+  const [outcomeExecuted, setOutcomeExecuted] = useState('');
+  const [actualRevenue, setActualRevenue] = useState('0');
+  const [actualCost, setActualCost] = useState('0');
+  const [executionPartner, setExecutionPartner] = useState('');
+  const [completionDate, setCompletionDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [outcomeNotes, setOutcomeNotes] = useState('');
+  const [submittingOutcome, setSubmittingOutcome] = useState(false);
+  const [outcomeFieldErrors, setOutcomeFieldErrors] = useState({});
+  const [outcomeError, setOutcomeError] = useState(null);
+
   const loadReturnDetail = useCallback(() => {
     setLoading(true);
     setError(null);
     setActionError(null);
     setDecisionError(null);
+    setCancelError(null);
+    setOutcomeError(null);
 
     api
       .get(`/returns/${id}`)
       .then((res) => {
         const returnData = res.data?.data || null;
         setData(returnData);
+
+        // Pre-fill outcome executed with decision final disposition
+        if (returnData?.decision?.final_disposition) {
+          setOutcomeExecuted(returnData.decision.final_disposition);
+        }
 
         // If status is EVALUATED, fetch real-time recommendation
         if (returnData?.return?.status === 'EVALUATED') {
@@ -76,7 +100,6 @@ export default function ReturnDetail() {
             .then((recRes) => {
               setRecommendation(recRes.data?.data || null);
               if (recRes.data?.data?.recommended_disposition) {
-                // Default override selection to a different disposition
                 const recDisp = recRes.data.data.recommended_disposition;
                 const alt = ALL_DISPOSITIONS.find((d) => d !== recDisp) || 'Resell';
                 setSelectedDisposition(alt);
@@ -188,6 +211,61 @@ export default function ReturnDetail() {
     }
   };
 
+  const handleCancelSubmit = async (e) => {
+    e.preventDefault();
+    if (!cancelReason.trim()) {
+      setCancelError('Please provide a reason for cancelling this return.');
+      return;
+    }
+    setSubmittingCancel(true);
+    setCancelError(null);
+    try {
+      await api.post(`/returns/${id}/cancel`, {
+        reason: cancelReason.trim(),
+      });
+      setCancelOpen(false);
+      setCancelReason('');
+      loadReturnDetail();
+    } catch (err) {
+      setCancelError(getApiErrorMessage(err));
+    } finally {
+      setSubmittingCancel(false);
+    }
+  };
+
+  const handleOutcomeSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingOutcome(true);
+    setOutcomeFieldErrors({});
+    setOutcomeError(null);
+
+    const payload = {
+      disposition_executed: outcomeExecuted || ret?.decision?.final_disposition,
+      actual_revenue: parseFloat(actualRevenue) || 0,
+      actual_cost: parseFloat(actualCost) || 0,
+      execution_partner: executionPartner.trim(),
+      completion_date: completionDate,
+      outcome_notes: outcomeNotes.trim(),
+    };
+
+    try {
+      await api.post(`/returns/${id}/outcome`, payload);
+      loadReturnDetail();
+    } catch (err) {
+      const errors = err.response?.data?.errors;
+      if (Array.isArray(errors)) {
+        const errMap = {};
+        errors.forEach((eItem) => {
+          if (eItem.field) errMap[eItem.field] = eItem.message;
+        });
+        setOutcomeFieldErrors(errMap);
+      }
+      setOutcomeError(getApiErrorMessage(err));
+    } finally {
+      setSubmittingOutcome(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
@@ -225,19 +303,41 @@ export default function ReturnDetail() {
   const status = ret.status;
   const decision = data.decision;
   const alternatives = data.alternatives || [];
+  const outcome = data.outcome;
 
   const currentStepIdx = LIFECYCLE_STEPS.findIndex((s) => s.key === status);
   const isCancelled = status === 'CANCELLED';
   const canInspect = ['RECEIVED', 'UNDER_INSPECTION', 'EVALUATED'].includes(status);
+  const canCancel = isSupervisorOrAdmin && ['RECEIVED', 'UNDER_INSPECTION', 'EVALUATED'].includes(status);
   const isEvaluated = status === 'EVALUATED';
+  const isDecided = status === 'DECIDED';
+  const isCompleted = status === 'COMPLETED' && Boolean(outcome);
   const isDecidedOrLater = ['DECIDED', 'COMPLETED'].includes(status) || Boolean(decision);
+
+  // Compute expected figures from the final disposition's alternative
+  const finalAlternative = alternatives.find((a) => a.disposition_type === decision?.final_disposition);
+  const expectedNet = finalAlternative ? Number(finalAlternative.net_expected_recovery) : 0;
+  const expectedRevenue = finalAlternative ? Number(finalAlternative.estimated_revenue) : 0;
+  const expectedCost = finalAlternative ? Number(finalAlternative.estimated_cost) : 0;
+  const actualNet = outcome ? Number(outcome.actual_net_recovery) : 0;
+  const variance = outcome ? actualNet - expectedNet : 0;
 
   return (
     <div className="page-return-detail" style={{ maxWidth: '960px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none', fontSize: '0.9rem' }}>
           ← Back to Returns
         </Link>
+
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            className="btn-danger-outline"
+          >
+            Cancel Return
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -268,11 +368,65 @@ export default function ReturnDetail() {
         </div>
       )}
 
+      {/* Cancel Modal / Dialog */}
+      {cancelOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-box">
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#c62828' }}>Cancel Return</h3>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#555' }}>
+              Are you sure you want to cancel return <strong>{ret.return_tracking_number}</strong>? This action cannot be undone.
+            </p>
+
+            {cancelError && (
+              <div role="alert" style={{ padding: '0.5rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+                {cancelError}
+              </div>
+            )}
+
+            <form onSubmit={handleCancelSubmit}>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label htmlFor="cancel-reason">Cancellation Reason *</label>
+                <textarea
+                  id="cancel-reason"
+                  rows={3}
+                  required
+                  placeholder="e.g. Customer withdrew request, Fraudulent claim, Duplicate entry"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="form-control"
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCancelOpen(false);
+                    setCancelError(null);
+                  }}
+                  className="btn-secondary"
+                  disabled={submittingCancel}
+                >
+                  Keep Return
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingCancel}
+                  className="btn-danger"
+                >
+                  {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Lifecycle Progress Bar */}
       <div className="detail-card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#37474f' }}>Lifecycle Progress</h3>
         {isCancelled ? (
-          <div style={{ padding: '0.75rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', fontWeight: 600 }}>
+          <div style={{ padding: '0.75rem 1rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', fontWeight: 600 }}>
             This return has been CANCELLED.
           </div>
         ) : (
@@ -347,6 +501,202 @@ export default function ReturnDetail() {
           )}
         </div>
       </div>
+
+      {/* Outcome Section (When status is COMPLETED) */}
+      {isCompleted && (
+        <div className="detail-card outcome-card" style={{ marginBottom: '1.5rem', borderLeft: '6px solid #2e7d32' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div>
+              <span className="info-label">Execution Outcome</span>
+              <h2 style={{ margin: '0.25rem 0', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                Executed: {outcome.disposition_executed}
+                <span className="badge-accepted">COMPLETED</span>
+              </h2>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.85rem', color: '#757575', display: 'block' }}>
+                Completed {outcome.completion_date ? new Date(outcome.completion_date).toLocaleDateString() : '—'}
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#9e9e9e' }}>
+                Partner: {outcome.execution_partner || 'Internal Logistics'}
+              </span>
+            </div>
+          </div>
+
+          {/* Expected vs Actual Side-by-Side Comparison */}
+          <div style={{ marginBottom: '1rem', background: '#f5f7fa', borderRadius: '6px', padding: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#37474f' }}>Recovery Financial Performance (Expected vs Actual)</h4>
+            <div className="comparison-grid">
+              <div className="comparison-col">
+                <span className="comparison-heading">Metric</span>
+                <div className="comparison-cell"><strong>Gross Revenue</strong></div>
+                <div className="comparison-cell"><strong>Total Cost</strong></div>
+                <div className="comparison-cell highlight"><strong>Net Value Recovery</strong></div>
+              </div>
+              <div className="comparison-col">
+                <span className="comparison-heading">Expected (Engine)</span>
+                <div className="comparison-cell">₹{expectedRevenue.toLocaleString()}</div>
+                <div className="comparison-cell">₹{expectedCost.toLocaleString()}</div>
+                <div className="comparison-cell highlight">₹{expectedNet.toLocaleString()}</div>
+              </div>
+              <div className="comparison-col">
+                <span className="comparison-heading">Actual (Realized)</span>
+                <div className="comparison-cell">₹{Number(outcome.actual_revenue).toLocaleString()}</div>
+                <div className="comparison-cell">₹{Number(outcome.actual_cost).toLocaleString()}</div>
+                <div className="comparison-cell highlight" style={{ color: actualNet >= 0 ? '#1b5e20' : '#c62828' }}>
+                  ₹{actualNet.toLocaleString()}
+                </div>
+              </div>
+              <div className="comparison-col">
+                <span className="comparison-heading">Variance</span>
+                <div className="comparison-cell">₹{(Number(outcome.actual_revenue) - expectedRevenue).toLocaleString()}</div>
+                <div className="comparison-cell">₹{(Number(outcome.actual_cost) - expectedCost).toLocaleString()}</div>
+                <div className="comparison-cell highlight" style={{ color: variance >= 0 ? '#1b5e20' : '#c62828' }}>
+                  {variance >= 0 ? `+₹${variance.toLocaleString()}` : `-₹${Math.abs(variance).toLocaleString()}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {outcome.outcome_notes && (
+            <div style={{ fontSize: '0.9rem', color: '#455a64', background: '#fafafa', padding: '0.75rem', borderRadius: '4px' }}>
+              <strong>Execution Notes:</strong> {outcome.outcome_notes}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Outcome Form (When status is DECIDED, supervisor only) */}
+      {isDecided && isSupervisorOrAdmin && (
+        <div className="detail-card" style={{ marginBottom: '1.5rem', border: '2px solid #2e7d32', background: '#f1f8e9' }}>
+          <h2 style={{ fontSize: '1.25rem', marginTop: 0, marginBottom: '0.25rem', color: '#1b5e20' }}>
+            Record Final Execution Outcome
+          </h2>
+          <p style={{ color: '#555', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+            This return has a finalized decision (<strong>{decision?.final_disposition}</strong>). Record the financial recovery and completion details to mark this return as <strong>COMPLETED</strong>.
+          </p>
+
+          {outcomeError && (
+            <div role="alert" style={{ padding: '0.75rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', marginBottom: '1rem' }}>
+              {outcomeError}
+            </div>
+          )}
+
+          <form onSubmit={handleOutcomeSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label htmlFor="outcome-executed">Disposition Executed *</label>
+                <select
+                  id="outcome-executed"
+                  value={outcomeExecuted}
+                  onChange={(e) => setOutcomeExecuted(e.target.value)}
+                  className="form-control"
+                  required
+                >
+                  {ALL_DISPOSITIONS.map((d) => (
+                    <option key={d} value={d}>
+                      {d} {d === decision?.final_disposition ? '(Decided Target)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {outcomeFieldErrors.disposition_executed && (
+                  <span className="field-error">{outcomeFieldErrors.disposition_executed}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="execution-partner">Execution Partner</label>
+                <input
+                  id="execution-partner"
+                  type="text"
+                  placeholder="e.g. QuickRefurb Labs, Shiksha Foundation, EcoRecycle"
+                  value={executionPartner}
+                  onChange={(e) => setExecutionPartner(e.target.value)}
+                  className="form-control"
+                />
+                {outcomeFieldErrors.execution_partner && (
+                  <span className="field-error">{outcomeFieldErrors.execution_partner}</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label htmlFor="actual-revenue">Actual Revenue (₹) *</label>
+                <input
+                  id="actual-revenue"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={actualRevenue}
+                  onChange={(e) => setActualRevenue(e.target.value)}
+                  className="form-control"
+                />
+                {outcomeFieldErrors.actual_revenue && (
+                  <span className="field-error">{outcomeFieldErrors.actual_revenue}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="actual-cost">Actual Cost (₹) *</label>
+                <input
+                  id="actual-cost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={actualCost}
+                  onChange={(e) => setActualCost(e.target.value)}
+                  className="form-control"
+                />
+                {outcomeFieldErrors.actual_cost && (
+                  <span className="field-error">{outcomeFieldErrors.actual_cost}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="completion-date">Completion Date *</label>
+                <input
+                  id="completion-date"
+                  type="date"
+                  required
+                  value={completionDate}
+                  onChange={(e) => setCompletionDate(e.target.value)}
+                  className="form-control"
+                />
+                {outcomeFieldErrors.completion_date && (
+                  <span className="field-error">{outcomeFieldErrors.completion_date}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label htmlFor="outcome-notes">Execution Notes</label>
+              <textarea
+                id="outcome-notes"
+                rows={2}
+                placeholder="Log invoice numbers, consignment tracking or notes..."
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+                className="form-control"
+              />
+              {outcomeFieldErrors.outcome_notes && (
+                <span className="field-error">{outcomeFieldErrors.outcome_notes}</span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={submittingOutcome}
+              className="btn-primary"
+              style={{ backgroundColor: '#2e7d32' }}
+            >
+              {submittingOutcome ? 'Recording...' : 'Record Outcome & Mark Completed'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Decision Section (When status is DECIDED or COMPLETED) */}
       {isDecidedOrLater && decision && (
