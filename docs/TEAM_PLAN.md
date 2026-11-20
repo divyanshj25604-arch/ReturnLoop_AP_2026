@@ -1,115 +1,14 @@
-# Return Loop: Team Build Plan (for humans and AI agents)
+# Return Loop: Team Work Breakdown
 
-This file is the single plan for finishing Return Loop. It is written so that each teammate can hand it to their AI coding agent (Antigravity or similar). The agent reads it, works out whose turn it is from the git history, and, if it is its human's turn, does exactly one commit and pushes it.
+This document explains how the work on Return Loop was divided between the three of us: who owns which part, the order the work was done in, and what each commit had to contain.
 
-**Agents: read section 1 and follow it exactly before doing anything else.**
+The project was built as **36 commits, done in a fixed order**. Each commit is one step owned by one person. A step's details (section 7) say what to build and how to know it's finished. The API that the backend and frontend share is defined in [`docs/api.md`](api.md).
 
----
-
-## 1. Agent protocol (read first, follow every time)
-
-You are helping one member of a 3-person team. The team builds the project **one commit at a time, in a fixed order** (section 6). Every commit belongs to exactly one person. You only ever do your own human's next commit.
-
-### Step A: Find out who you are working for
-
-Run:
-
-```bash
-git config user.name
-```
-
-Match it (case-insensitive) to a team member:
-
-| `git config user.name` contains | Team member | Code |
-| --- | --- | --- |
-| `divyansh` | Divyansh Jha | **DJ** |
-| `devanshi` | Devanshi Kumari | **DK** |
-| `shreyansh` | Shreyansh Rathaur | **SR** |
-
-If it matches none of them, **stop and ask your human who they are.** Do not guess.
-
-> Note: "Divyansh" and "Devanshi" are different people. Match the full first name, not just "dev" or "div".
-
-### Step B: Get the latest code
-
-```bash
-git checkout main
-git pull --rebase origin main
-```
-
-If the working tree has uncommitted changes, **stop and ask your human** what to do with them. Never discard their work.
-
-### Step C: Find the next step
-
-Every commit in this plan ends with a step tag like `[step 07]`. Find the steps already done:
-
-```bash
-git log origin/main --format=%s | grep -oE '\[step [0-9]{2}\]' | sort -u
-```
-
-- The **next step** is the lowest step number in section 6 that does not appear yet.
-- If there is a gap (for example `[step 05]` exists but `[step 04]` doesn't), **stop and tell your human.** Something went wrong and the team must fix it first.
-- If all 36 steps are done, tell your human the plan is complete.
-
-### Step D: Is it your turn?
-
-Look up the next step in section 6.
-
-- **If its owner is not your human:** do **nothing**. Tell your human:
-  `Next is step NN (<title>), owned by <name>. Not your turn yet. Your next step is step MM.`
-  Then stop. Do not write code, do not prepare files, do not commit.
-- **If its owner is your human:** continue to Step E.
-
-### Step E: Do the step
-
-1. Read section 7 for that step: what to build, which files, and the "Done when" checklist.
-2. Read [`docs/api.md`](api.md). **It is the source of truth** for every endpoint, field name, status code, role and response shape. Do not invent alternatives.
-3. Read the existing code you are about to change, and follow the patterns already in the repo (section 5).
-4. Do **only** that step. Don't start the next step, don't refactor unrelated code, don't "improve" other people's files.
-5. If the step cannot be done as written (a dependency is missing, the contract is contradictory, a test you didn't write fails), **stop and explain the problem to your human.** Do not work around it by changing `docs/api.md` or someone else's code.
-
-### Step F: Check your work
-
-Before committing, all of these must pass:
-
-```bash
-npm test
-```
-
-If `client/` exists and you changed it:
-
-```bash
-npm --prefix client run build
-```
-
-Also tick every item in that step's "Done when" list. If something fails, fix it within your step, or stop and ask.
-
-### Step G: Commit and push
-
-1. Stage only the files for this step. Never stage `.env`, `node_modules/`, `client/node_modules/` or `client/dist/`.
-2. Use **exactly** the commit message from section 6, including the `[step NN]` tag. You may add a short body explaining details.
-3. Commit, then push:
-
-   ```bash
-   git commit -m "<exact message from section 6>"
-   git pull --rebase origin main
-   git push origin main
-   ```
-
-4. If the push is rejected or the rebase has conflicts, **stop and ask your human.** Never force-push.
-5. Tell your human: which step you finished, and whose turn is next (look it up in section 6).
-
-### Hard rules
-
-- One step = one commit. Never combine steps. Never split a step into several commits.
-- Never do another person's step, even if they are slow. Your human can talk to them instead.
-- Never edit `docs/api.md` or this file unless your step says so. If you think the contract is wrong, tell your human.
-- Never commit secrets. `.env` stays local. Add new variables to `.env.example` with placeholder values.
-- Never force-push, rewrite history, or delete branches.
+**Status:** all 36 steps are complete and on `main`. Fixes made after step 36 are ordinary commits without a step tag.
 
 ---
 
-## 2. What Return Loop is
+## 1. What Return Loop is
 
 Return Loop is a decision intelligence app for **returned electronics**. When a customer returns a product, the warehouse must decide what to do with it. Every return ends in one of six **dispositions**:
 
@@ -139,38 +38,61 @@ RECEIVED ─► UNDER_INSPECTION ─► EVALUATED ─► DECIDED ─► COMPLETE
 
 ---
 
-## 3. Decisions the team has made
+## 2. Team and responsibilities
 
-These are final. Agents must follow them.
+| Code | Name | Owns | Steps | Count |
+| --- | --- | --- | --- | --- |
+| **DJ** | Divyansh Jha | Backend API, JWT login and roles, warehouse privacy, API tests, end-to-end testing, final README | 01, 06, 08, 10, 13, 15, 18, 20, 22, 24, 27, 30, 33, 35, 36 | 15 |
+| **SR** | Shreyansh Rathaur | Database schema, seed data and setup script; the recommendation engine and its tests and docs | 02, 03, 04, 05, 12, 17, 21, 26 | 8 |
+| **DK** | Devanshi Kumari | The React frontend (every page) and the dashboard SQL | 07, 09, 11, 14, 16, 19, 23, 25, 28, 29, 31, 32, 34 | 13 |
+
+Step 36 (final README) was first given to Shreyansh and later moved to Divyansh.
+
+### What each person delivers
+
+**Divyansh (backend)**
+- The API contract (`docs/api.md`) and this plan.
+- Shared backend helpers: input validation, error format, number handling.
+- Login with JWT, the `requireAuth` / `requireRole` middleware, and the rule that inspectors only see their own warehouse.
+- Every endpoint in the return workflow: listing and creating returns, inspections, recommendation preview, decisions, outcomes, cancelling, and the dashboard.
+- Admin endpoints for products, warehouses and operators.
+- API tests, including one test that walks a return through the whole lifecycle.
+- End-to-end testing in the browser and the fixes it found; the final README.
+
+**Shreyansh (database and engine)**
+- Cleaning up `dbms/` and the schema changes for login (`password_hash`, `app_role`) and the fixed `functional_status` values.
+- Seed data that covers every role, every warehouse and every return status, plus `npm run db:setup`.
+- The recommendation engine (`src/services/recommendation.service.js`): scoring, ranking, confidence and the reason shown for each option.
+- Engine unit tests and the engine documentation (`docs/engine.md`).
+
+**Devanshi (frontend)**
+- The React app in `client/`: setup, API client, login, layout and menu by role.
+- Pages: returns list, new return form, return detail (inspection, recommendation cards, accept/override, outcome, cancel), dashboard, admin.
+- Loading, empty and error states across the app.
+- The dashboard SQL queries (`dbms/07_dashboard_queries.sql`).
+
+---
+
+## 3. Decisions the team made
 
 | Topic | Decision |
 | --- | --- |
 | Stack | PostgreSQL + Node.js/Express (CommonJS) backend + **React (Vite, JavaScript)** frontend |
 | Repo layout | Backend stays at the repo root (`src/`). Frontend goes in `client/`. |
 | Login | **JWT** (HS256, 8 h expiry, no refresh tokens). Passwords hashed with bcrypt. No sign-up page; admins create accounts. |
-| Roles | `INSPECTOR` < `SUPERVISOR` < `ADMIN`, stored in the new column `operators.app_role`. Each role can do everything the lower roles can. |
+| Roles | `INSPECTOR` < `SUPERVISOR` < `ADMIN`, stored in the column `operators.app_role`. Each role can do everything the lower roles can. |
 | Warehouse privacy | An `INSPECTOR` only sees and acts on returns from **their own warehouse**. Other warehouses' returns give `404`. Supervisors and admins see all. |
 | Test password | Every seeded account uses the password **`Devanshi1234`** (stored as a bcrypt hash). Development only. |
 | `functional_status` | Only 4 values: `Fully Functional`, `Minor Glitch`, `Defective Hardware`, `Non-functional`. Enforced by a DB `CHECK` constraint. |
 | Recommendation storage | `GET /returns/:id/recommendation` only calculates. `POST /returns/:id/decision` re-runs the engine and saves the decision and all 6 alternatives in **one transaction**. |
 | No deletes | Products, warehouses and operators are never deleted. Operators are deactivated with `is_active = false`. |
-| API contract | [`docs/api.md`](api.md) defines every endpoint. Build exactly to it. |
+| API contract | [`docs/api.md`](api.md) defines every endpoint. Backend and frontend both build exactly to it. |
 
 ---
 
-## 4. The team
+## 4. Project conventions
 
-| Code | Name | Area |
-| --- | --- | --- |
-| **DJ** | Divyansh Jha | Backend API, JWT auth, API tests |
-| **SR** | Shreyansh Rathaur | Database (schema, seed, setup) and the recommendation engine |
-| **DK** | Devanshi Kumari | React frontend and the dashboard SQL |
-
----
-
-## 5. Project conventions
-
-### Folder layout (target)
+### Folder layout
 
 ```text
 ReturnLoop_AP_2026/
@@ -188,7 +110,7 @@ ReturnLoop_AP_2026/
 ├── dbms/              schema, seed, queries, design docs
 ├── scripts/           db-setup.js
 ├── tests/             node:test files (*.test.js)
-└── docs/              api.md, TEAM_PLAN.md
+└── docs/              api.md, engine.md, TEAM_PLAN.md, screenshots/
 ```
 
 ### Backend rules
@@ -208,30 +130,72 @@ ReturnLoop_AP_2026/
 - All API calls go through one client module (`client/src/api/client.js`).
 - Plain CSS is fine. No UI framework is required.
 
-### Database rules
+### Database files
 
-- PostgreSQL. Final file names after step 02:
+| File | Contents |
+| --- | --- |
+| `dbms/00_database_design.md` | Entities and relationships |
+| `dbms/01_normalization.md` | Normalization analysis |
+| `dbms/02_er_diagram.md` + `.png` | ER diagram |
+| `dbms/03_schema.sql` | `CREATE TABLE` statements (re-runnable) |
+| `dbms/04_seed.sql` | Seed data (re-runnable) |
+| `dbms/05_queries.sql` | Example queries |
+| `dbms/06_query_timings.md` | Query results and timings |
+| `dbms/07_dashboard_queries.sql` | Dashboard SQL (added in step 29) |
 
-  | File | Contents |
-  | --- | --- |
-  | `dbms/00_database_design.md` | Entities and relationships |
-  | `dbms/01_normalization.md` | Normalization analysis |
-  | `dbms/02_er_diagram.md` + `.png` | ER diagram |
-  | `dbms/03_schema.sql` | `CREATE TABLE` statements (re-runnable) |
-  | `dbms/04_seed.sql` | Seed data (re-runnable) |
-  | `dbms/05_queries.sql` | Example queries |
-  | `dbms/06_query_timings.md` | Query results and timings |
-  | `dbms/07_dashboard_queries.sql` | Dashboard SQL (added in step 29) |
+### Commit messages
 
-### Commit message format
-
-Conventional commits, ending with the step tag: `type(scope): summary [step NN]`.
+Conventional commits, ending with the step tag: `type(scope): summary [step NN]`. The exact message for every step is in section 6.
 
 ---
 
-## 6. Commit order (the master list)
+## 5. How each step is done
 
-Steps are done strictly in this order, one after another. **A step can only be done after every step above it is in `origin/main`.**
+Every step follows the same routine:
+
+1. **Pull the latest code** from `main`, so you're building on everyone else's finished steps:
+
+   ```bash
+   git checkout main
+   git pull --rebase origin main
+   ```
+
+2. **Check the step before yours is done.** All earlier steps should already be on `main`. You can list the finished steps with:
+
+   ```bash
+   git log --format=%s | grep -oE '\[step [0-9]{2}\]' | sort -u
+   ```
+
+3. **Build only your step.** Use its details in section 7, the API contract in `docs/api.md`, and the conventions in section 4. Don't start the next step or change parts owned by someone else in the same commit.
+
+4. **Check it works.** Run the tests, and the frontend build if you changed `client/`. Go through the step's **Done when** list.
+
+   ```bash
+   npm test
+   npm run client:build
+   ```
+
+5. **Commit and push.** One step is one commit, using the exact message from section 6. Then tell the team that your step is pushed and whose step is next.
+
+   ```bash
+   git commit -m "<exact message from section 6>"
+   git pull --rebase origin main
+   git push origin main
+   ```
+
+### Team rules
+
+- One step = one commit. Don't combine steps or split one step into several commits.
+- Do your own steps. If someone is stuck, talk to them rather than doing their step.
+- `docs/api.md` changes only when the people on both sides of an endpoint agree, and the change goes in the same commit as the code.
+- Never commit `.env`. Add new settings to `.env.example` with placeholder values.
+- Never force-push or rewrite `main`'s history.
+
+---
+
+## 6. Commit order
+
+Steps were done in this order, one after another. A step started only once every step above it was on `main`.
 
 | Step | Owner | Exact commit message |
 | --- | --- | --- |
@@ -272,11 +236,11 @@ Steps are done strictly in this order, one after another. **A step can only be d
 | 35 | DJ | `fix: resolve issues found in end-to-end testing [step 35]` |
 | 36 | DJ | `docs: update README with setup, test logins and screenshots [step 36]` |
 
-Totals: DJ 15 · DK 13 · SR 8 (36 steps). Step 36 was reassigned from SR to DJ.
+Totals: DJ 15 · DK 13 · SR 8 (36 steps).
 
 ### Why this order: dependencies
 
-The list above already respects all of these. They are here so humans and agents understand why a step needs the ones before it.
+The order above respects all of these.
 
 **Hard dependencies** (the step cannot work without these):
 
@@ -307,7 +271,7 @@ The list above already respects all of these. They are here so humans and agents
 | 35 | everything from 02 to 34 |
 | 36 | 35 |
 
-**Soft dependencies** (frontend steps). These are built against the example responses in `docs/api.md`. When the real endpoint already exists, use it:
+**Soft dependencies** (frontend steps). These can be built against the example responses in `docs/api.md` and switched to the real endpoint once it exists:
 
 | Step | Builds on | Real data comes from |
 | --- | --- | --- |
@@ -327,7 +291,7 @@ The list above already respects all of these. They are here so humans and agents
 
 ## 7. Step details
 
-Each step lists what to build and a **Done when** checklist. `docs/api.md` has the exact request/response shapes; section numbers below refer to it.
+Each step lists what to build and a **Done when** checklist: the step is finished when every item on it is true. `docs/api.md` has the exact request/response shapes; section numbers below refer to it.
 
 ### Step 01 (DJ): API contract and team plan
 
@@ -337,14 +301,14 @@ Each step lists what to build and a **Done when** checklist. `docs/api.md` has t
 ### Step 02 (SR): Clean up `dbms/`
 
 - Remove the duplicates: `dbms/02_schema.sql` and `dbms/03_schema.sql` are identical; `dbms/02_er_diagram.png` and `dbms/03_er_diagram.png` are identical.
-- Rename to the final layout in section 5 using `git mv` (keeps history):
+- Rename to the final layout in section 4 using `git mv` (keeps history):
   - keep `03_schema.sql`, delete `02_schema.sql`
   - `03_er_diagram.md` → `02_er_diagram.md`; keep `02_er_diagram.png`, delete `03_er_diagram.png`
   - `03_seed.sql` → `04_seed.sql`
   - `04_queries.sql` → `05_queries.sql`
   - `05_query_timings.md` → `06_query_timings.md`
 - Fix any references to the old file names inside `dbms/*.md` and the README.
-- **Done when:** `dbms/` matches the table in section 5 (minus `07_`), with no duplicates and no broken references.
+- **Done when:** `dbms/` matches the table in section 4 (minus `07_`), with no duplicates and no broken references.
 
 ### Step 03 (SR): Schema changes
 
@@ -567,8 +531,8 @@ Match `docs/api.md` section 5.6 exactly:
 
 ### Step 27 (DJ): Outcome and cancel endpoints
 
-- `POST /returns/:id/outcome` (`SUPERVISOR`) per section 5.6.5: status must be `DECIDED`; `disposition_executed` defaults to the final disposition; sets status `COMPLETED` in the same transaction.
-- `POST /returns/:id/cancel` (`SUPERVISOR`) per section 5.6.6: allowed only before `DECIDED`; `reason` required; append `[Cancelled] <reason>` to `customer_comment`.
+- `POST /returns/:id/outcome` (`SUPERVISOR`) per `docs/api.md` section 5.6.5: status must be `DECIDED`; `disposition_executed` defaults to the final disposition; sets status `COMPLETED` in the same transaction.
+- `POST /returns/:id/cancel` (`SUPERVISOR`) per `docs/api.md` section 5.6.6: allowed only before `DECIDED`; `reason` required; append `[Cancelled] <reason>` to `customer_comment`.
 - **Done when:** tests cover both, including wrong-status `409` and duplicate outcome `409`.
 
 ### Step 28 (DK): Outcome and cancel on the detail page
@@ -630,7 +594,7 @@ Match `docs/api.md` section 5.6 exactly:
 
 ---
 
-## 8. How to run the project (once the steps exist)
+## 8. How to run the project
 
 ```bash
 npm install
