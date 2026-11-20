@@ -65,7 +65,29 @@ Edit `.env` to suit your machine. Never commit `.env`; it is ignored by git.
 | --- | --- | --- |
 | `PORT` | Port the HTTP server listens on | `3000` |
 | `NODE_ENV` | Runtime environment | `development` |
-| `DATABASE_URL` | PostgreSQL connection string (not used yet) | empty |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://localhost:5432/returnloop_db` |
+
+## Database Setup
+
+1. Ensure PostgreSQL is running and create a local database:
+
+   ```bash
+   createdb returnloop_db
+   ```
+
+2. Configure `DATABASE_URL` in `.env`:
+
+   ```env
+   DATABASE_URL=postgresql://localhost:5432/returnloop_db
+   ```
+
+3. Initialize the schema and populate seed data:
+
+   ```bash
+   npm run db:setup
+   ```
+
+   This executes `dbms/03_schema.sql` followed by `dbms/04_seed.sql`, rebuilding and seeding all tables cleanly in one command.
 
 ## Running the Project
 
