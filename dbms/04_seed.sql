@@ -2,8 +2,21 @@
 -- Return Loop — Representative Database Seed Data
 -- Project: Return Loop (Decision Intelligence Platform for Returned Electronics)
 -- Role: Database Architect (Shreyansh Rathaur)
--- Assignment: AP CP1
 -- Target Engine: PostgreSQL (v12+)
+--
+-- TEST LOGINS & ROLE CREDENTIALS:
+-- Every account uses the development test password: Devanshi1234
+-- Password hashes are generated using pgcrypto's crypt(..., gen_salt('bf', 10)).
+--
+-- +-------------------------------------+------------+-----------+----------------+
+-- | Email                               | App Role   | Facility  | Operator Name  |
+-- +-------------------------------------+------------+-----------+----------------+
+-- | rajesh.sharma@returnloop.internal   | ADMIN      | WH-DEL-01 | Rajesh Sharma  |
+-- | priya.sundaram@returnloop.internal  | SUPERVISOR | WH-BLR-01 | Priya Sundaram |
+-- | amit.kulkarni@returnloop.internal   | INSPECTOR  | WH-MUM-01 | Amit Kulkarni  |
+-- | sneha.reddy@returnloop.internal     | INSPECTOR  | WH-HYD-01 | Sneha Reddy    |
+-- | vikram.verma@returnloop.internal    | INSPECTOR  | WH-DEL-01 | Vikram Verma   |
+-- +-------------------------------------+------------+-----------+----------------+
 --
 -- NOTE / DISCLAIMER:
 -- All financial, product, serial number, and operational data contained herein
@@ -60,18 +73,18 @@ INSERT INTO warehouses (warehouse_code, facility_name, city, state, capacity) VA
 
 -- ----------------------------------------------------------------------------
 -- 3. Seed: operators
--- Reverse-logistics technicians, inspectors, and triage decision managers.
+-- Reverse-logistics staff with cryptographically hashed passwords and RBAC roles.
 -- ----------------------------------------------------------------------------
-INSERT INTO operators (employee_code, full_name, email, role, warehouse_id, is_active) VALUES
-('OP-101', 'Rajesh Sharma',    'rajesh.sharma@returnloop.internal',    'Senior Triage Supervisor',       1, TRUE),
-('OP-102', 'Priya Sundaram',   'priya.sundaram@returnloop.internal',   'Lead Diagnostics Specialist',    2, TRUE),
-('OP-103', 'Amit Kulkarni',    'amit.kulkarni@returnloop.internal',    'Reverse Logistics Technician',   3, TRUE),
-('OP-104', 'Sneha Reddy',      'sneha.reddy@returnloop.internal',      'Quality & Disposition Assessor', 4, TRUE),
-('OP-105', 'Vikram Verma',     'vikram.verma@returnloop.internal',     'Mobile Diagnostics Specialist',  1, TRUE);
+INSERT INTO operators (employee_code, full_name, email, password_hash, app_role, role, warehouse_id, is_active) VALUES
+('OP-101', 'Rajesh Sharma',    'rajesh.sharma@returnloop.internal',  crypt('Devanshi1234', gen_salt('bf', 10)), 'ADMIN',      'Senior Operations Director',     1, TRUE),
+('OP-102', 'Priya Sundaram',   'priya.sundaram@returnloop.internal', crypt('Devanshi1234', gen_salt('bf', 10)), 'SUPERVISOR', 'Triage & Quality Lead',         2, TRUE),
+('OP-103', 'Amit Kulkarni',    'amit.kulkarni@returnloop.internal',  crypt('Devanshi1234', gen_salt('bf', 10)), 'INSPECTOR',  'Reverse Logistics Technician',   3, TRUE),
+('OP-104', 'Sneha Reddy',      'sneha.reddy@returnloop.internal',    crypt('Devanshi1234', gen_salt('bf', 10)), 'INSPECTOR',  'Diagnostics & Grading Assessor', 4, TRUE),
+('OP-105', 'Vikram Verma',     'vikram.verma@returnloop.internal',   crypt('Devanshi1234', gen_salt('bf', 10)), 'INSPECTOR',  'Mobile Hardware Technician',     1, TRUE);
 
 -- ----------------------------------------------------------------------------
 -- 4. Seed: returns
--- Representative customer return transactions with varied reasons and conditions.
+-- Customer return transactions across every status and warehouse.
 -- ----------------------------------------------------------------------------
 INSERT INTO returns (return_tracking_number, product_id, warehouse_id, serial_number, return_reason, return_date, status, customer_comment) VALUES
 ('RET-2026-0001', 1, 1, 'IMEI-354928104829101', 'Changed mind / unwanted gift',        '2026-11-01', 'COMPLETED',        'Box seal opened by recipient but phone never activated.'),
@@ -83,13 +96,16 @@ INSERT INTO returns (return_tracking_number, product_id, warehouse_id, serial_nu
 ('RET-2026-0007', 7, 1, 'SN-C02G8192MD6R',      'Severe liquid spill damage',          '2026-11-07', 'COMPLETED',        'Spilled coffee on keyboard; machine will not boot.'),
 ('RET-2026-0008', 8, 3, 'SN-XKW10082718293',    'Analog stick drift and joy-con wear', '2026-11-08', 'DECIDED',          'Left analog stick inputs drift upward during gameplay.'),
 ('RET-2026-0009', 1, 2, 'IMEI-354928104829999', 'Wrong color variant delivered',       '2026-11-09', 'DECIDED',          'Ordered Starlight variant but received Midnight.'),
-('RET-2026-0010', 9, 1, 'SN-DELL-9182736450',    'Intermittent haptic trackpad lock',   '2026-11-10', 'DECIDED',          'Seamless glass trackpad clicks erratically after sleep.'),
+('RET-2026-0010', 9, 1, 'SN-DELL-9182736450',    'Intermittent haptic trackpad lock',   '2026-11-10', 'EVALUATED',        'Seamless glass trackpad clicks erratically after sleep.'),
 ('RET-2026-0011', 10,4, 'IMEI-867192049182710', 'Continuous bootloop upon update',     '2026-11-11', 'UNDER_INSPECTION', 'System reboots continuously at OxygenOS animation.'),
-('RET-2026-0012', 4, 3, 'SN-H8J7K6L99988',      'Missing left earbud from package',    '2026-11-12', 'RECEIVED',         'Customer package returned with missing left earpiece.');
+('RET-2026-0012', 4, 3, 'SN-H8J7K6L99988',      'Missing left earbud from package',    '2026-11-12', 'RECEIVED',         'Customer package returned with missing left earpiece.'),
+('RET-2026-0013', 2, 2, 'IMEI-358172901827999', 'Customer cancelled return request',   '2026-11-13', 'CANCELLED',        'Customer withdrew return; retained item after remote troubleshooting.'),
+('RET-2026-0014', 3, 4, 'IMEI-359182049182999', 'Ordered duplicate by mistake',       '2026-11-14', 'RECEIVED',         'Unopened package received at Deccan facility intake.');
 
 -- ----------------------------------------------------------------------------
 -- 5. Seed: inspections
--- Diagnostic evaluations covering Excellent, Good, Fair, and Damaged conditions.
+-- Evaluations matching the 4 permitted functional statuses and condition grades.
+-- Returns in RECEIVED and CANCELLED have no inspection records.
 -- ----------------------------------------------------------------------------
 INSERT INTO inspections (return_id, inspector_id, condition_grade, has_original_packaging, has_all_accessories, functional_status, repair_estimate, diagnostic_notes) VALUES
 (1,  1, 'Excellent', TRUE,  TRUE,  'Fully Functional',     0.00, 'Zero cosmetic scratches. 100% battery health. Factory packaging pristine.'),
@@ -105,76 +121,101 @@ INSERT INTO inspections (return_id, inspector_id, condition_grade, has_original_
 
 -- ----------------------------------------------------------------------------
 -- 6. Seed: disposition_decisions
--- Disposition recommendations and final decisions (with both accepted and overridden recommendations).
--- Represents all 6 dispositions: Resell, Refurbish, Exchange, Donate, Recycle, Write-off.
+-- Decision intelligence recommendations and authorized supervisor decisions.
+-- Evaluated returns (Return 10) have an inspection but no decision yet.
 -- ----------------------------------------------------------------------------
 INSERT INTO disposition_decisions (return_id, recommended_disposition, final_disposition, decided_by_operator_id, is_override, override_reason, confidence_score) VALUES
 (1,  'Resell',    'Resell',    1, FALSE, NULL,                                                                                                           0.985),
 (2,  'Resell',    'Refurbish', 2, TRUE,  'Supervisor override: Buffing rear glass and certifying as Grade-A refurbished maximizes resale price realization.', 0.860),
-(3,  'Refurbish', 'Refurbish', 5, FALSE, NULL,                                                                                                           0.930),
-(4,  'Resell',    'Donate',    3, TRUE,  'Corporate health & hygiene policy prohibits open-box earphone resale. Approved for educational trust donation.', 0.890),
+(3,  'Refurbish', 'Refurbish', 1, FALSE, NULL,                                                                                                           0.930),
+(4,  'Resell',    'Donate',    2, TRUE,  'Corporate health & hygiene policy prohibits open-box earphone resale. Approved for educational trust donation.', 0.890),
 (5,  'Refurbish', 'Refurbish', 2, FALSE, NULL,                                                                                                           0.875),
-(6,  'Recycle',   'Recycle',   4, FALSE, NULL,                                                                                                           0.945),
+(6,  'Recycle',   'Recycle',   1, FALSE, NULL,                                                                                                           0.945),
 (7,  'Write-off', 'Write-off', 1, FALSE, NULL,                                                                                                           0.995),
-(8,  'Refurbish', 'Refurbish', 3, FALSE, NULL,                                                                                                           0.885),
-(9,  'Exchange',  'Exchange',  2, FALSE, NULL,                                                                                                           0.965),
-(10, 'Refurbish', 'Refurbish', 5, FALSE, NULL,                                                                                                           0.840);
+(8,  'Refurbish', 'Refurbish', 2, FALSE, NULL,                                                                                                           0.885),
+(9,  'Exchange',  'Exchange',  2, FALSE, NULL,                                                                                                           0.965);
 
 -- ----------------------------------------------------------------------------
 -- 7. Seed: decision_alternatives
--- Multi-criteria alternatives evaluated by the recommendation algorithm.
+-- Every decision evaluates all six disposition alternatives ranked 1 through 6.
 -- ----------------------------------------------------------------------------
 INSERT INTO decision_alternatives (decision_id, disposition_type, estimated_revenue, estimated_cost, feasibility_score, rank_order, is_recommended, rationale) VALUES
--- Alternatives for Decision 1 (iPhone 14 - Excellent condition)
+-- Alternatives for Decision 1 (Return 1 - iPhone 14 - Excellent)
 (1, 'Resell',    62000.00, 1200.00, 0.985, 1, TRUE,  'Pristine condition allows direct secondary open-box sale with 88% retail value recovery.'),
 (1, 'Refurbish', 59000.00, 3500.00, 0.820, 2, FALSE, 'Refurbishment unnecessary; incurs redundant labor and handling costs.'),
 (1, 'Exchange',  56000.00, 2000.00, 0.750, 3, FALSE, 'Device could fulfill warranty pool, but direct liquid resale provides superior recovery.'),
+(1, 'Donate',        0.00,  500.00, 0.900, 4, FALSE, 'High residual economic value precludes charitable donation.'),
+(1, 'Recycle',    1500.00,  600.00, 0.600, 5, FALSE, 'Functional device should not be sent for materials scrap.'),
+(1, 'Write-off',     0.00,  800.00, 0.990, 6, FALSE, 'Write-off represents total unrecovered loss.'),
 
--- Alternatives for Decision 2 (Galaxy S23 - Minor scratch)
+-- Alternatives for Decision 2 (Return 2 - Galaxy S23 - Good)
 (2, 'Resell',    61000.00, 1500.00, 0.810, 1, TRUE,  'Algorithm prioritized immediate sale as Grade-B open-box.'),
 (2, 'Refurbish', 64500.00, 4200.00, 0.940, 2, FALSE, 'Polishing rear glass elevates unit to Grade-A certified refurbished; net margin is higher.'),
-(2, 'Donate',        0.00,  500.00, 0.900, 3, FALSE, 'High residual economic value precludes charitable donation.'),
+(2, 'Exchange',  52000.00, 2500.00, 0.700, 3, FALSE, 'Viable warranty replacement inventory candidate.'),
+(2, 'Donate',        0.00,  500.00, 0.900, 4, FALSE, 'Substantial commercial recovery available on secondary market.'),
+(2, 'Recycle',    1400.00,  600.00, 0.650, 5, FALSE, 'Scrap value is negligible compared to refurbished market price.'),
+(2, 'Write-off',     0.00,  800.00, 0.990, 6, FALSE, 'Write-off financially unjustified.'),
 
--- Alternatives for Decision 3 (Pixel 8 - Screen digitizer defect)
+-- Alternatives for Decision 3 (Return 3 - Pixel 8 - Fair / Touch defect)
 (3, 'Refurbish', 54000.00, 9500.00, 0.930, 1, TRUE,  'OLED screen replacement recovers over 58% of device MSRP after service.'),
 (3, 'Resell',    25000.00,  800.00, 0.350, 2, FALSE, 'Selling with defective display yields steep wholesale salvage discount.'),
-(3, 'Write-off',     0.00, 1000.00, 0.990, 3, FALSE, 'Salvage recovery far exceeds write-off threshold.'),
+(3, 'Exchange',  45000.00,10500.00, 0.650, 3, FALSE, 'Screen repair enables replenishment of replacement pool.'),
+(3, 'Donate',        0.00,  500.00, 0.400, 4, FALSE, 'Defective display requires servicing before charitable transfer.'),
+(3, 'Recycle',    2000.00,  700.00, 0.750, 5, FALSE, 'Material scrap yields far lower recovery than refurbished sale.'),
+(3, 'Write-off',     0.00, 1000.00, 0.990, 6, FALSE, 'Salvage recovery far exceeds write-off threshold.'),
 
--- Alternatives for Decision 4 (AirPods Pro - Hygiene intake)
+-- Alternatives for Decision 4 (Return 4 - AirPods Pro - Good / Hygiene)
 (4, 'Resell',    19000.00, 1000.00, 0.450, 1, TRUE,  'Algorithmic open-box resale flagged due to sanitization constraints.'),
 (4, 'Donate',        0.00,  350.00, 0.950, 2, FALSE, 'Sanitized audio unit suitable for community education initiative.'),
-(4, 'Recycle',     400.00,  300.00, 0.880, 3, FALSE, 'Material scrap yields negligible economic return.'),
+(4, 'Refurbish', 18000.00, 2500.00, 0.500, 3, FALSE, 'Labor cost to repackage in-ear acoustics exceeds resale premium.'),
+(4, 'Exchange',  16000.00, 1200.00, 0.550, 4, FALSE, 'Sanitized case and buds can be held for warranty claims.'),
+(4, 'Recycle',     400.00,  300.00, 0.880, 5, FALSE, 'Material scrap yields negligible economic return.'),
+(4, 'Write-off',     0.00,  400.00, 0.990, 6, FALSE, 'Full loss write-off avoided through donation channel.'),
 
--- Alternatives for Decision 5 (Sony WH-1000XM5 - ANC glitch)
+-- Alternatives for Decision 5 (Return 5 - Sony WH-1000XM5 - Fair / ANC issue)
 (5, 'Refurbish', 23000.00, 4800.00, 0.875, 1, TRUE,  'Left feedback harness replacement restores full premium ANC capability.'),
 (5, 'Resell',    13000.00,  900.00, 0.400, 2, FALSE, 'Selling with audio distortion causes customer friction and return churn.'),
-(5, 'Recycle',     800.00,  500.00, 0.910, 3, FALSE, 'High residual electronics value makes recycling suboptimal.'),
+(5, 'Exchange',  20000.00, 5200.00, 0.700, 3, FALSE, 'Serviceable unit could serve as replacement stock.'),
+(5, 'Donate',        0.00,  400.00, 0.500, 4, FALSE, 'Defective ANC unit sub-optimal for partner donation.'),
+(5, 'Recycle',     800.00,  500.00, 0.910, 5, FALSE, 'High residual electronics value makes recycling suboptimal.'),
+(5, 'Write-off',     0.00,  600.00, 0.990, 6, FALSE, 'Hardware is readily repairable.'),
 
--- Alternatives for Decision 6 (JBL Charge 5 - Damaged USB port)
+-- Alternatives for Decision 6 (Return 6 - JBL Charge 5 - Damaged USB port)
 (6, 'Recycle',    1200.00,  400.00, 0.945, 1, TRUE,  'Heavy repair labor exceeds recovery value; certified e-waste recovery recommended.'),
 (6, 'Refurbish',  7500.00, 6800.00, 0.480, 2, FALSE, 'Board-level micro-soldering cost erodes net recovery margin to under INR 700.'),
-(6, 'Write-off',     0.00,  300.00, 0.990, 3, FALSE, 'Recycling delivers higher recovery than pure loss write-off.'),
+(6, 'Resell',     2000.00,  500.00, 0.200, 3, FALSE, 'Non-charging speaker cannot be resold without customer defect dispute.'),
+(6, 'Exchange',   5000.00, 6900.00, 0.300, 4, FALSE, 'Repair cost exceeds allowable replacement pool provisioning threshold.'),
+(6, 'Donate',        0.00,  300.00, 0.100, 5, FALSE, 'Inoperable unit cannot be accepted for donation.'),
+(6, 'Write-off',     0.00,  300.00, 0.990, 6, FALSE, 'Recycling delivers higher recovery than pure loss write-off.'),
 
--- Alternatives for Decision 7 (MacBook Air M2 - Liquid damage total loss)
+-- Alternatives for Decision 7 (Return 7 - MacBook Air M2 - Liquid Damage Total Loss)
 (7, 'Write-off',     0.00, 1500.00, 0.995, 1, TRUE,  'Catastrophic liquid ingress shorted CPU and NAND; repair cost exceeds market value.'),
 (7, 'Recycle',    3500.00, 5500.00, 0.720, 2, FALSE, 'Chassis aluminum salvage does not offset hazardous battery processing fee.'),
 (7, 'Refurbish', 45000.00,68000.00, 0.150, 3, FALSE, 'Board and display replacement cost exceeds replacement device cost.'),
+(7, 'Exchange',  30000.00,70000.00, 0.100, 4, FALSE, 'Motherboard replacement economically unviable.'),
+(7, 'Resell',        0.00,  500.00, 0.050, 5, FALSE, 'Dead system has zero secondary consumer market value.'),
+(7, 'Donate',        0.00,  300.00, 0.050, 6, FALSE, 'Non-booting unit rejected by educational non-profits.'),
 
--- Alternatives for Decision 8 (Nintendo Switch OLED - Joy-Con drift)
+-- Alternatives for Decision 8 (Return 8 - Nintendo Switch OLED - Joy-Con Drift)
 (8, 'Refurbish', 27000.00, 3800.00, 0.885, 1, TRUE,  'Hall-effect joystick replacement permanently resolves drift for quick re-commerce.'),
 (8, 'Resell',    19000.00, 1000.00, 0.520, 2, FALSE, 'Drifting joystick impairs gaming experience and violates return warranty standards.'),
+(8, 'Exchange',  24000.00, 4000.00, 0.800, 3, FALSE, 'Console can easily re-enter warranty exchange queue once joy-cons replaced.'),
+(8, 'Donate',        0.00,  400.00, 0.600, 4, FALSE, 'High secondary demand makes resale financially preferable to donation.'),
+(8, 'Recycle',    1200.00,  500.00, 0.700, 5, FALSE, 'Scrap yield is minimal compared to repaired console value.'),
+(8, 'Write-off',     0.00,  600.00, 0.990, 6, FALSE, 'Component repair is rapid and highly cost effective.'),
 
--- Alternatives for Decision 9 (iPhone 14 - Wrong color / pristine)
+-- Alternatives for Decision 9 (Return 9 - iPhone 14 - Wrong Color / Pristine)
 (9, 'Exchange',  66000.00, 1000.00, 0.965, 1, TRUE,  'Unblemished device directly repopulates customer warranty replacement pool.'),
 (9, 'Resell',    63000.00, 1200.00, 0.920, 2, FALSE, 'Direct open-box sale is viable but replacement inventory pool has higher priority.'),
-
--- Alternatives for Decision 10 (Dell XPS 13 - Trackpad glitch)
-(10,'Refurbish', 88000.00, 7500.00, 0.840, 1, TRUE,  'Haptic trackpad sub-assembly replacement restores workstation to Grade-A status.'),
-(10,'Write-off',     0.00, 2000.00, 0.950, 2, FALSE, 'Asset value of INR 88,000 makes write-off financially irresponsible.');
+(9, 'Refurbish', 60000.00, 3000.00, 0.800, 3, FALSE, 'No refurbishment required on pristine factory unit.'),
+(9, 'Donate',        0.00,  500.00, 0.900, 4, FALSE, 'Asset value of INR 69,900 precludes charitable allocation.'),
+(9, 'Recycle',    1500.00,  600.00, 0.600, 5, FALSE, 'Perfect device must not be scrapped.'),
+(9, 'Write-off',     0.00,  800.00, 0.990, 6, FALSE, 'Asset write-off financially irresponsible.');
 
 -- ----------------------------------------------------------------------------
 -- 8. Seed: decision_outcomes
--- Actual financial recovery and fulfillment metrics for completed dispositions.
+-- Completed real-world fulfillment metrics.
+-- Decided returns (Return 5, 8, 9) have decisions and alternatives, but no outcome.
 -- ----------------------------------------------------------------------------
 INSERT INTO decision_outcomes (decision_id, disposition_executed, actual_revenue, actual_cost, execution_partner, completion_date, outcome_notes) VALUES
 (1, 'Resell',    62500.00, 1150.00, 'Amazon Renewed India',              '2026-11-04', 'Sold within 48 hours of open-box listing. Excellent margin realization.'),
