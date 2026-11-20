@@ -351,18 +351,21 @@ export default function Admin() {
       )}
 
       {pageError && (
-        <div className="admin-alert error" style={{ marginBottom: '1.25rem' }}>
-          <span>{pageError}</span>
-          <button className="close-alert-btn" onClick={() => setPageError('')}>
-            ×
+        <div className="error-banner" role="alert" style={{ marginBottom: '1.25rem' }}>
+          <div>
+            <strong>Error:</strong> {pageError}
+          </div>
+          <button type="button" className="retry-btn" onClick={fetchData}>
+            Retry
           </button>
         </div>
       )}
 
       {/* Main Tab Content */}
       {loading ? (
-        <div className="admin-loading-card">
-          <p>Loading {activeTab} data...</p>
+        <div className="loading-container" style={{ padding: '4rem 1.5rem', backgroundColor: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
+          <div className="spinner" />
+          <span>Loading {activeTab} data...</span>
         </div>
       ) : (
         <>
@@ -384,8 +387,20 @@ export default function Admin() {
                 <tbody>
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
-                        No products found.
+                      <td colSpan="7">
+                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
+                          <div className="empty-state-icon">📱</div>
+                          <h3 className="empty-state-title">No products found</h3>
+                          <p className="empty-state-desc">The catalog is currently empty. Add your first product to allow returns intake.</p>
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            style={{ marginTop: '0.5rem' }}
+                            onClick={handleOpenCreateProduct}
+                          >
+                            + Add First Product
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -435,8 +450,20 @@ export default function Admin() {
                 <tbody>
                   {warehouses.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>
-                        No warehouses found.
+                      <td colSpan="7">
+                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
+                          <div className="empty-state-icon">🏢</div>
+                          <h3 className="empty-state-title">No warehouses found</h3>
+                          <p className="empty-state-desc">No return logistics facilities have been set up yet.</p>
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            style={{ marginTop: '0.5rem' }}
+                            onClick={handleOpenCreateWarehouse}
+                          >
+                            + Add First Warehouse
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -486,8 +513,20 @@ export default function Admin() {
                 <tbody>
                   {operators.length === 0 ? (
                     <tr>
-                      <td colSpan="9" style={{ textAlign: 'center', padding: '2rem' }}>
-                        No operators found.
+                      <td colSpan="9">
+                        <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
+                          <div className="empty-state-icon">👥</div>
+                          <h3 className="empty-state-title">No operators found</h3>
+                          <p className="empty-state-desc">No operator accounts have been provisioned yet.</p>
+                          <button
+                            type="button"
+                            className="primary-btn"
+                            style={{ marginTop: '0.5rem' }}
+                            onClick={handleOpenCreateOperator}
+                          >
+                            + Add First Operator
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
@@ -555,6 +594,7 @@ export default function Admin() {
                 <input
                   type="text"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. SAM-S24-256-BLK"
                   value={productForm.sku}
                   onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
@@ -568,6 +608,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. Samsung"
                     value={productForm.brand}
                     onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
@@ -579,6 +620,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. Smartphone"
                     value={productForm.category}
                     onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
@@ -594,6 +636,7 @@ export default function Admin() {
                 <input
                   type="text"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. Galaxy S24 Ultra"
                   value={productForm.model_name}
                   onChange={(e) => setProductForm({ ...productForm, model_name: e.target.value })}
@@ -610,6 +653,7 @@ export default function Admin() {
                   step="0.01"
                   min="0"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. 129999.00"
                   value={productForm.retail_price}
                   onChange={(e) =>
@@ -669,6 +713,7 @@ export default function Admin() {
                 <input
                   type="text"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. WH-KOL-01"
                   value={warehouseForm.warehouse_code}
                   onChange={(e) =>
@@ -685,6 +730,7 @@ export default function Admin() {
                 <input
                   type="text"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. Kolkata Sorting Center"
                   value={warehouseForm.facility_name}
                   onChange={(e) =>
@@ -702,6 +748,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. Kolkata"
                     value={warehouseForm.city}
                     onChange={(e) =>
@@ -715,6 +762,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. West Bengal"
                     value={warehouseForm.state}
                     onChange={(e) =>
@@ -732,6 +780,7 @@ export default function Admin() {
                   min="1"
                   step="1"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. 5000"
                   value={warehouseForm.capacity}
                   onChange={(e) =>
@@ -792,6 +841,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. OP-107"
                     value={operatorForm.employee_code}
                     onChange={(e) =>
@@ -810,6 +860,7 @@ export default function Admin() {
                   <input
                     type="text"
                     required
+                    disabled={formSubmitting}
                     placeholder="e.g. Priya Sharma"
                     value={operatorForm.full_name}
                     onChange={(e) =>
@@ -826,6 +877,7 @@ export default function Admin() {
                     <input
                       type="email"
                       required
+                      disabled={formSubmitting}
                       placeholder="e.g. priya.sharma@returnloop.internal"
                       value={operatorForm.email}
                       onChange={(e) =>
@@ -849,6 +901,7 @@ export default function Admin() {
                 <input
                   type="text"
                   required
+                  disabled={formSubmitting}
                   placeholder="e.g. Reverse Logistics Specialist"
                   value={operatorForm.role}
                   onChange={(e) => setOperatorForm({ ...operatorForm, role: e.target.value })}
@@ -861,6 +914,7 @@ export default function Admin() {
                   <label>Application Role *</label>
                   <select
                     value={operatorForm.app_role}
+                    disabled={formSubmitting}
                     onChange={(e) =>
                       setOperatorForm({ ...operatorForm, app_role: e.target.value })
                     }
@@ -879,6 +933,7 @@ export default function Admin() {
                   <select
                     value={operatorForm.warehouse_id}
                     required
+                    disabled={formSubmitting}
                     onChange={(e) =>
                       setOperatorForm({ ...operatorForm, warehouse_id: e.target.value })
                     }
@@ -903,6 +958,7 @@ export default function Admin() {
                   <label>Status *</label>
                   <select
                     value={operatorForm.is_active ? 'true' : 'false'}
+                    disabled={formSubmitting}
                     onChange={(e) =>
                       setOperatorForm({
                         ...operatorForm,
@@ -926,6 +982,7 @@ export default function Admin() {
                 <input
                   type="password"
                   required={!editingItem}
+                  disabled={formSubmitting}
                   placeholder={
                     editingItem
                       ? 'Leave blank to keep unchanged (min 8 chars if resetting)'

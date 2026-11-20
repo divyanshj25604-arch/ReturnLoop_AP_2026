@@ -268,8 +268,9 @@ export default function ReturnDetail() {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-        Loading return details for #{id}...
+      <div className="loading-container" style={{ padding: '4rem 1rem' }}>
+        <div className="spinner" />
+        <span>Loading return #{id} details...</span>
       </div>
     );
   }
@@ -277,22 +278,21 @@ export default function ReturnDetail() {
   if (error || !data || !data.return) {
     return (
       <div style={{ maxWidth: '800px', margin: '2rem auto' }}>
-        <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none' }}>
+        <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none', fontWeight: 600 }}>
           ← Back to Returns
         </Link>
-        <div
-          role="alert"
-          style={{
-            marginTop: '1rem',
-            padding: '1.25rem',
-            background: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-            border: '1px solid #ef9a9a',
-          }}
-        >
-          <h3>Unable to load return</h3>
-          <p>{error || 'Return not found'}</p>
+        <div className="empty-state-card" style={{ marginTop: '1.5rem', borderColor: '#ef9a9a' }}>
+          <div className="empty-state-icon" style={{ color: '#c62828' }}>⚠️</div>
+          <h3 className="empty-state-title" style={{ color: '#c62828' }}>Unable to load return</h3>
+          <p className="empty-state-desc">{error || 'Return not found or you do not have permission to view it.'}</p>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+            <button type="button" className="retry-btn" onClick={loadReturnDetail}>
+              Retry Loading
+            </button>
+            <Link to="/returns" className="btn-secondary" style={{ textDecoration: 'none' }}>
+              Back to Returns
+            </Link>
+          </div>
         </div>
       </div>
     );

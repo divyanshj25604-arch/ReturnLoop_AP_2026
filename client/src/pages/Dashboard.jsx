@@ -101,6 +101,7 @@ export default function Dashboard() {
             id="dashboard-wh-select"
             value={warehouseId}
             onChange={(e) => setWarehouseId(e.target.value)}
+            disabled={loading}
             className="filter-select"
             style={{ minWidth: '220px' }}
           >
@@ -115,24 +116,20 @@ export default function Dashboard() {
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            padding: '1rem',
-            background: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-            marginBottom: '1.5rem',
-            border: '1px solid #ef9a9a',
-          }}
-        >
-          {error}
+        <div className="error-banner" role="alert">
+          <div>
+            <strong>Unable to load dashboard metrics:</strong> {error}
+          </div>
+          <button type="button" className="retry-btn" onClick={fetchDashboard}>
+            Retry
+          </button>
         </div>
       )}
 
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#666' }}>
-          Loading live dashboard intelligence...
+        <div className="loading-container" style={{ padding: '4rem 1.5rem' }}>
+          <div className="spinner" />
+          <span>Loading live dashboard intelligence...</span>
         </div>
       ) : (
         <>
@@ -147,30 +144,28 @@ export default function Dashboard() {
             <div className="summary-tile">
               <span className="tile-label">Total Actual Realized</span>
               <span className="tile-value success">₹{actualRecovery.toLocaleString()}</span>
-              <span className="tile-desc">
-                {expectedRecovery > 0
-                  ? `${((actualRecovery / expectedRecovery) * 100).toFixed(1)}% recovery realization`
-                  : 'Realized from completed outcomes'}
-              </span>
+              <span className="tile-desc">Completed execution net revenue</span>
             </div>
 
             <div className="summary-tile">
               <span className="tile-label">Supervisor Override Rate</span>
-              <span className="tile-value warning">{(overrideRate * 100).toFixed(1)}%</span>
-              <span className="tile-desc">Decisions deviating from engine pick</span>
+              <span className={`tile-value ${overrideRate > 30 ? 'warning' : 'primary'}`}>
+                {overrideRate.toFixed(1)}%
+              </span>
+              <span className="tile-desc">Dispositions modified from engine</span>
             </div>
 
             <div className="summary-tile">
-              <span className="tile-label">Total Intake Volume</span>
-              <span className="tile-value">{totalReturnsCount}</span>
-              <span className="tile-desc">Units recorded across lifecycle</span>
+              <span className="tile-label">Total Return Volume</span>
+              <span className="tile-value">{totalReturnsCount.toLocaleString()}</span>
+              <span className="tile-desc">Intake items across facilities</span>
             </div>
           </div>
 
-          {/* Return Volume Pipeline by Status */}
+          {/* Return Status Distribution */}
           <div className="detail-card" style={{ marginBottom: '1.5rem' }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: '#37474f' }}>
-              Returns Pipeline by Status
+              Intake Lifecycle Pipeline Breakdown
             </h3>
             <div className="status-tiles-grid">
               {STATUS_CONFIG.map((cfg) => {
@@ -179,11 +174,9 @@ export default function Dashboard() {
                   <div
                     key={cfg.key}
                     className="status-tile"
-                    style={{ backgroundColor: cfg.bg, borderTop: `4px solid ${cfg.color}` }}
+                    style={{ backgroundColor: cfg.bg, color: cfg.color }}
                   >
-                    <span className="status-tile-count" style={{ color: cfg.color }}>
-                      {count}
-                    </span>
+                    <span className="status-tile-count">{count}</span>
                     <span className="status-tile-label">{cfg.label}</span>
                   </div>
                 );
@@ -191,11 +184,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          {/* 2-Column Section: Disposition Breakdown & Recent Activity */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             {/* Disposition Breakdown Chart */}
             <div className="detail-card">
               <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.05rem', color: '#37474f' }}>
-                Decisions by Disposition Pathway
+                Decided Dispositions
               </h3>
               <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#757575' }}>
                 Distribution of finalized dispositions decided by supervisors.
@@ -236,9 +230,13 @@ export default function Dashboard() {
               </div>
 
               {recent.length === 0 ? (
-                <p style={{ color: '#666', fontStyle: 'italic', margin: 'auto 0' }}>
-                  No recent intake activity found.
-                </p>
+                <div className="empty-state-card" style={{ border: 'none', padding: '2rem 1rem', margin: 'auto 0' }}>
+                  <div className="empty-state-icon">📋</div>
+                  <h4 className="empty-state-title" style={{ fontSize: '1rem' }}>No recent activity</h4>
+                  <p className="empty-state-desc" style={{ fontSize: '0.85rem' }}>
+                    There are no recent returns logged for the selected facility filter.
+                  </p>
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
                   {recent.map((ret) => (

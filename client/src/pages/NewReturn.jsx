@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -28,14 +28,14 @@ export default function NewReturn() {
   const [loadingData, setLoadingData] = useState(true);
 
   // Load products and warehouses
-  useEffect(() => {
-    let isMounted = true;
+  const loadData = useCallback(() => {
+    setLoadingData(true);
+    setGeneralError(null);
     Promise.all([
       api.get('/products'),
       api.get('/warehouses'),
     ])
       .then(([productsRes, warehousesRes]) => {
-        if (!isMounted) return;
         const prodList = productsRes.data?.data || [];
         const whList = warehousesRes.data?.data || [];
         setProducts(prodList);
@@ -52,20 +52,16 @@ export default function NewReturn() {
         }
       })
       .catch((err) => {
-        if (isMounted) {
-          setGeneralError(getApiErrorMessage(err));
-        }
+        setGeneralError(getApiErrorMessage(err));
       })
       .finally(() => {
-        if (isMounted) {
-          setLoadingData(false);
-        }
+        setLoadingData(false);
       });
-
-    return () => {
-      isMounted = false;
-    };
   }, [isInspector, user]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredProducts = products.filter((p) => {
     if (!productSearch.trim()) return true;
@@ -145,24 +141,33 @@ export default function NewReturn() {
       </div>
 
       {generalError && (
-        <div
-          role="alert"
-          style={{
-            padding: '1rem',
-            background: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-            marginBottom: '1.25rem',
-            border: '1px solid #ef9a9a',
-          }}
-        >
-          {generalError}
+        <div className="error-banner" role="alert">
+          <div>
+            <strong>Error:</strong> {generalError}
+          </div>
+          {loadingData && (
+            <button type="button" className="retry-btn" onClick={loadData}>
+              Retry
+            </button>
+          )}
         </div>
       )}
 
       {loadingData ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-          Loading intake catalog and warehouse configurations...
+        <div className="loading-container">
+          <div className="spinner" />
+          <span>Loading intake catalog and warehouse configurations...</span>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="empty-state-card">
+          <div className="empty-state-icon">📱</div>
+          <h3 className="empty-state-title">No products available</h3>
+          <p className="empty-state-desc">
+            No products are registered in the catalog yet. An administrator must create catalog products before returns can be received.
+          </p>
+          <Link to="/returns" className="btn-secondary" style={{ textDecoration: 'none', marginTop: '0.5rem' }}>
+            Back to Returns
+          </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="form-card">
@@ -177,6 +182,7 @@ export default function NewReturn() {
                 placeholder="Filter products by brand, model or SKU..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
+                disabled={submitting}
                 className="filter-input"
                 style={{ width: '100%', boxSizing: 'border-box' }}
               />
@@ -185,14 +191,19 @@ export default function NewReturn() {
               id="product-select"
               value={productId}
               onChange={(e) => setProductId(e.target.value)}
+              disabled={submitting}
               className="form-control"
               required
             >
-              {filteredProducts.map((p) => (
-                <option key={p.product_id} value={p.product_id}>
-                  {p.brand} {p.model_name} ({p.sku}) — ₹{Number(p.retail_price).toLocaleString()}
-                </option>
-              ))}
+              {filteredProducts.length === 0 ? (
+                <option value="" disabled>No products match your search</option>
+              ) : (
+                filteredProducts.map((p) => (
+                  <option key={p.product_id} value={p.product_id}>
+                    {p.brand} {p.model_name} ({p.sku}) — ₹{Number(p.retail_price).toLocaleString()}
+                  </option>
+                ))
+              )}
             </select>
             {fieldErrors.product_id && (
               <span className="field-error">{fieldErrors.product_id}</span>
@@ -208,7 +219,7 @@ export default function NewReturn() {
               id="warehouse-select"
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value)}
-              disabled={isInspector}
+              disabled={isInspector || submitting}
               className="form-control"
               required
             >
@@ -237,6 +248,7 @@ export default function NewReturn() {
                 type="text"
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
+                disabled={submitting}
                 placeholder="e.g. F2LXK9ABCD12"
                 className="form-control"
               />
@@ -253,6 +265,7 @@ export default function NewReturn() {
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
+                disabled={submitting}
                 placeholder="Auto-generated if left blank"
                 className="form-control"
               />
@@ -271,6 +284,7 @@ export default function NewReturn() {
               value={returnDate}
               max={todayStr}
               onChange={(e) => setReturnDate(e.target.value)}
+              disabled={submitting}
               className="form-control"
             />
             {fieldErrors.return_date && (
@@ -288,6 +302,7 @@ export default function NewReturn() {
               type="text"
               value={returnReason}
               onChange={(e) => setReturnReason(e.target.value)}
+              disabled={submitting}
               placeholder="e.g. Screen flickering, Battery drain, Customer remorse"
               className="form-control"
               required
@@ -305,6 +320,7 @@ export default function NewReturn() {
               rows={3}
               value={customerComment}
               onChange={(e) => setCustomerComment(e.target.value)}
+              disabled={submitting}
               placeholder="Additional feedback or condition reported by the customer..."
               className="form-control"
             />
@@ -318,13 +334,14 @@ export default function NewReturn() {
             <button
               type="button"
               onClick={() => navigate('/returns')}
+              disabled={submitting}
               className="btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || (filteredProducts.length === 0 && !productId)}
               className="btn-primary"
             >
               {submitting ? 'Creating Return...' : 'Create Return'}

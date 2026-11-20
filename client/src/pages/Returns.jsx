@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -43,7 +43,6 @@ export default function Returns() {
         }
       })
       .catch(() => {
-        // Fallback default warehouses if endpoint not implemented yet
         if (isMounted) {
           setWarehouses([
             { warehouse_id: 1, warehouse_code: 'WH-DEL-01', facility_name: 'Delhi Returns Hub' },
@@ -108,6 +107,14 @@ export default function Returns() {
     setPage(1);
   };
 
+  const handleClearFilters = () => {
+    setStatus('');
+    setSearch('');
+    setWarehouseId('');
+    setPage(1);
+  };
+
+  const hasActiveFilters = Boolean(status || search.trim() || warehouseId);
   const totalPages = Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10)));
 
   return (
@@ -117,16 +124,27 @@ export default function Returns() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
           marginBottom: '1.25rem',
         }}
       >
         <div>
-          <h1>Returns</h1>
-          <p style={{ color: '#555', margin: 0 }}>
+          <h1>Returns Pipeline</h1>
+          <p style={{ color: '#555', margin: 0, fontSize: '0.95rem' }}>
             {isInspector
               ? `Returns assigned to your warehouse (WH-${user?.warehouse_id})`
               : 'Overview and triage of all return intake items'}
           </p>
+        </div>
+        <div>
+          <Link
+            to="/returns/new"
+            className="btn-primary"
+            style={{ textDecoration: 'none', display: 'inline-block' }}
+          >
+            + Intake Return
+          </Link>
         </div>
       </div>
 
@@ -141,6 +159,7 @@ export default function Returns() {
             placeholder="Search tracking or serial..."
             value={search}
             onChange={handleSearchChange}
+            disabled={loading}
           />
         </div>
 
@@ -151,6 +170,7 @@ export default function Returns() {
             className="filter-select"
             value={status}
             onChange={handleStatusChange}
+            disabled={loading}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -168,6 +188,7 @@ export default function Returns() {
               className="filter-select"
               value={warehouseId}
               onChange={handleWarehouseChange}
+              disabled={loading}
             >
               <option value="">All Warehouses</option>
               {warehouses.map((wh) => (
@@ -178,20 +199,29 @@ export default function Returns() {
             </select>
           </div>
         )}
+
+        {hasActiveFilters && (
+          <div className="filter-group" style={{ justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="btn-secondary"
+              style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
-        <div
-          role="alert"
-          style={{
-            padding: '1rem',
-            background: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-            marginBottom: '1rem',
-          }}
-        >
-          {error}
+        <div className="error-banner" role="alert">
+          <div>
+            <strong>Error loading returns:</strong> {error}
+          </div>
+          <button type="button" className="retry-btn" onClick={fetchReturns}>
+            Retry
+          </button>
         </div>
       )}
 
@@ -210,14 +240,45 @@ export default function Returns() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                  Loading returns...
+                <td colSpan="5">
+                  <div className="loading-container">
+                    <div className="spinner" />
+                    <span>Loading returns pipeline...</span>
+                  </div>
                 </td>
               </tr>
             ) : returns.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                  No returns found matching the criteria.
+                <td colSpan="5">
+                  <div className="empty-state-card" style={{ border: 'none', margin: '1rem 0' }}>
+                    <div className="empty-state-icon">📦</div>
+                    <h3 className="empty-state-title">
+                      {hasActiveFilters ? 'No matching returns' : 'No returns found'}
+                    </h3>
+                    <p className="empty-state-desc">
+                      {hasActiveFilters
+                        ? 'Try clearing your filters or search keywords to view other returns.'
+                        : 'No returns have been received yet. Click "+ Intake Return" to record the first return.'}
+                    </p>
+                    {hasActiveFilters ? (
+                      <button
+                        type="button"
+                        onClick={handleClearFilters}
+                        className="btn-secondary"
+                        style={{ marginTop: '0.5rem' }}
+                      >
+                        Clear Filters
+                      </button>
+                    ) : (
+                      <Link
+                        to="/returns/new"
+                        className="btn-primary"
+                        style={{ textDecoration: 'none', marginTop: '0.5rem' }}
+                      >
+                        + Intake First Return
+                      </Link>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -259,34 +320,36 @@ export default function Returns() {
         </table>
 
         {/* Pagination bar */}
-        <div className="pagination-controls">
-          <div style={{ fontSize: '0.85rem', color: '#555' }}>
-            Showing {returns.length > 0 ? (page - 1) * meta.limit + 1 : 0}–
-            {Math.min(page * meta.limit, meta.total || 0)} of {meta.total || 0} returns
-          </div>
+        {!loading && returns.length > 0 && (
+          <div className="pagination-controls">
+            <div style={{ fontSize: '0.85rem', color: '#555' }}>
+              Showing {(page - 1) * meta.limit + 1}–
+              {Math.min(page * meta.limit, meta.total || 0)} of {meta.total || 0} returns
+            </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={page <= 1 || loading}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Previous
-            </button>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.5rem' }}>
-              Page {page} of {totalPages}
-            </span>
-            <button
-              type="button"
-              className="pagination-btn"
-              disabled={page >= totalPages || loading}
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Next
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </button>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.5rem' }}>
+                Page {page} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="pagination-btn"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((prev) => prev + 1)}
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
