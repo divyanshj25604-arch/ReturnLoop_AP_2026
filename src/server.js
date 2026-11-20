@@ -13,6 +13,11 @@ function handleStartupError(err) {
   process.exit(1);
 }
 
+if (!env.jwt.secret) {
+  console.error('JWT_SECRET is not set. Add it to .env (see .env.example) before starting the server.');
+  process.exit(1);
+}
+
 // Express 5 passes startup errors (e.g. EADDRINUSE) to the listen callback.
 app.listen(env.port, (err) => {
   if (err) {
