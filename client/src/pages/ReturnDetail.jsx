@@ -3,10 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { todayLocalIso, formatDateOnly, formatRupees, formatSignedRupees } from '../utils/format';
+import { statusLabel } from '../utils/status';
 
 const LIFECYCLE_STEPS = [
   { key: 'RECEIVED', label: 'Received' },
-  { key: 'UNDER_INSPECTION', label: 'Under Inspection' },
+  { key: 'UNDER_INSPECTION', label: 'Under inspection' },
   { key: 'EVALUATED', label: 'Evaluated' },
   { key: 'DECIDED', label: 'Decided' },
   { key: 'COMPLETED', label: 'Completed' },
@@ -269,29 +270,28 @@ export default function ReturnDetail() {
 
   if (loading) {
     return (
-      <div className="loading-container" style={{ padding: '4rem 1rem' }}>
+      <div className="loading-container">
         <div className="spinner" />
-        <span>Loading return #{id} details...</span>
+        <span>Loading return #{id}…</span>
       </div>
     );
   }
 
   if (error || !data || !data.return) {
     return (
-      <div style={{ maxWidth: '800px', margin: '2rem auto' }}>
-        <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none', fontWeight: 600 }}>
-          ← Back to Returns
+      <div className="narrow-page">
+        <Link to="/returns" className="back-link">
+          ← Returns
         </Link>
-        <div className="empty-state-card" style={{ marginTop: '1.5rem', borderColor: '#ef9a9a' }}>
-          <div className="empty-state-icon" style={{ color: '#c62828' }}>⚠️</div>
-          <h3 className="empty-state-title" style={{ color: '#c62828' }}>Unable to load return</h3>
+        <div className="empty-state-card boxed">
+          <h3 className="empty-state-title">This return couldn't be loaded</h3>
           <p className="empty-state-desc">{error || 'Return not found or you do not have permission to view it.'}</p>
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-            <button type="button" className="retry-btn" onClick={loadReturnDetail}>
-              Retry Loading
+          <div className="page-actions">
+            <button type="button" className="btn-primary" onClick={loadReturnDetail}>
+              Try again
             </button>
-            <Link to="/returns" className="btn-secondary" style={{ textDecoration: 'none' }}>
-              Back to Returns
+            <Link to="/returns" className="btn-secondary">
+              Back to returns
             </Link>
           </div>
         </div>
@@ -323,82 +323,78 @@ export default function ReturnDetail() {
   const actualNet = outcome ? Number(outcome.actual_net_recovery) : 0;
   const variance = outcome ? actualNet - expectedNet : 0;
 
+  // The engine's top pick among the live alternatives (EVALUATED only).
+  const liveAlternatives = recommendation?.alternatives || [];
+  const recommendedAlternative =
+    liveAlternatives.find((a) => a.is_recommended) ||
+    liveAlternatives.find((a) => a.disposition_type === recommendation?.recommended_disposition);
+
+  const signClass = (n) => (n >= 0 ? 'pos' : 'neg');
+
   return (
-    <div className="page-return-detail" style={{ maxWidth: '960px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <Link to="/returns" style={{ color: '#1a237e', textDecoration: 'none', fontSize: '0.9rem' }}>
-          ← Back to Returns
-        </Link>
+    <div className="page-return-detail detail-page">
+      <Link to="/returns" className="back-link">
+        ← Returns
+      </Link>
 
-        {canCancel && (
-          <button
-            type="button"
-            onClick={() => setCancelOpen(true)}
-            className="btn-danger-outline"
-          >
-            Cancel Return
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>Return {ret.return_tracking_number}</h1>
-          <span style={{ color: '#666', fontSize: '0.9rem' }}>
-            ID #{ret.return_id} • Created {new Date(ret.created_at).toLocaleString()}
-          </span>
+      <div className="detail-title-row">
+        <div className="page-head-text">
+          <h1>{ret.return_tracking_number}</h1>
+          <p className="detail-meta">
+            {ret.brand} {ret.model_name}. Return #{ret.return_id}, created {new Date(ret.created_at).toLocaleString()}
+          </p>
         </div>
-        <span className={`status-badge ${ret.status}`} style={{ fontSize: '0.9rem', padding: '0.35rem 0.85rem' }}>
-          {ret.status.replace(/_/g, ' ')}
-        </span>
+        <div className="detail-title-side">
+          <span className={`status-tag large ${ret.status}`}>{statusLabel(ret.status)}</span>
+          {canCancel && (
+            <button type="button" onClick={() => setCancelOpen(true)} className="btn-danger-outline">
+              Cancel return
+            </button>
+          )}
+        </div>
       </div>
 
       {actionError && (
-        <div
-          role="alert"
-          style={{
-            padding: '1rem',
-            background: '#ffebee',
-            color: '#c62828',
-            borderRadius: '4px',
-            marginBottom: '1.5rem',
-            border: '1px solid #ef9a9a',
-          }}
-        >
+        <div role="alert" className="alert error">
           {actionError}
         </div>
       )}
 
-      {/* Cancel Modal / Dialog */}
+      {/* Cancel dialog */}
       {cancelOpen && (
         <div className="modal-backdrop">
-          <div className="modal-box">
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#c62828' }}>Cancel Return</h3>
-            <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#555' }}>
-              Are you sure you want to cancel return <strong>{ret.return_tracking_number}</strong>? This action cannot be undone.
+          <div className="modal-box danger" role="dialog" aria-modal="true" aria-labelledby="cancel-title">
+            <div className="modal-header">
+              <h2 id="cancel-title">Cancel this return?</h2>
+            </div>
+            <p className="modal-intro">
+              <strong>{ret.return_tracking_number}</strong> will be marked Cancelled and can't be inspected or decided
+              afterwards. This can't be undone.
             </p>
 
             {cancelError && (
-              <div role="alert" style={{ padding: '0.5rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+              <div role="alert" className="alert error">
                 {cancelError}
               </div>
             )}
 
             <form onSubmit={handleCancelSubmit}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label htmlFor="cancel-reason">Cancellation Reason *</label>
+              <div className="form-group">
+                <label htmlFor="cancel-reason">
+                  Reason <span className="required-star">*</span>
+                </label>
                 <textarea
                   id="cancel-reason"
                   rows={3}
                   required
-                  placeholder="e.g. Customer withdrew request, Fraudulent claim, Duplicate entry"
+                  placeholder="e.g. Customer withdrew the request, duplicate entry"
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   className="form-control"
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div className="form-actions">
                 <button
                   type="button"
                   onClick={() => {
@@ -408,14 +404,10 @@ export default function ReturnDetail() {
                   className="btn-secondary"
                   disabled={submittingCancel}
                 >
-                  Keep Return
+                  Keep return
                 </button>
-                <button
-                  type="submit"
-                  disabled={submittingCancel}
-                  className="btn-danger"
-                >
-                  {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
+                <button type="submit" disabled={submittingCancel} className="btn-danger">
+                  {submittingCancel ? 'Cancelling…' : 'Cancel return'}
                 </button>
               </div>
             </form>
@@ -423,170 +415,160 @@ export default function ReturnDetail() {
         </div>
       )}
 
-      {/* Lifecycle Progress Bar */}
-      <div className="detail-card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
-        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#37474f' }}>Lifecycle Progress</h3>
+      {/* Lifecycle */}
+      <section className="panel" aria-label="Lifecycle">
         {isCancelled ? (
-          <div style={{ padding: '0.75rem 1rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', fontWeight: 600 }}>
-            This return has been CANCELLED.
-          </div>
+          <div className="cancelled-note">This return was cancelled before a decision was made.</div>
         ) : (
-          <div className="lifecycle-stepper">
+          <ol className="lifecycle">
             {LIFECYCLE_STEPS.map((step, idx) => {
               const isPassed = currentStepIdx > idx;
               const isCurrent = currentStepIdx === idx;
               return (
-                <div
+                <li
                   key={step.key}
-                  className={`stepper-step ${isPassed ? 'completed' : ''} ${isCurrent ? 'active' : ''}`}
+                  className={`lifecycle-step ${step.key} ${isPassed ? 'done' : ''} ${isCurrent ? 'current' : ''}`}
+                  aria-current={isCurrent ? 'step' : undefined}
                 >
-                  <div className="step-circle">{isPassed ? '✓' : idx + 1}</div>
-                  <div className="step-label">{step.label}</div>
-                  {idx < LIFECYCLE_STEPS.length - 1 && <div className="step-connector" />}
-                </div>
+                  <span className="n">{isPassed ? '✓' : idx + 1}</span>
+                  {step.label}
+                </li>
               );
             })}
-          </div>
+          </ol>
         )}
-      </div>
+      </section>
 
-      {/* Return Info Card */}
-      <div className="detail-card" style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '1rem', color: '#1a237e' }}>
-          Return Information
-        </h2>
-        <div className="info-grid">
-          <div className="info-item">
-            <span className="info-label">Product</span>
-            <span className="info-value">
+      {/* Return information */}
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Device and return</h2>
+        </div>
+        <dl className="facts">
+          <div>
+            <dt>Product</dt>
+            <dd>
               <strong>{ret.brand}</strong> {ret.model_name}
-            </span>
+            </dd>
           </div>
-          <div className="info-item">
-            <span className="info-label">SKU / Category</span>
-            <span className="info-value">
-              {ret.sku} ({ret.category})
-            </span>
+          <div>
+            <dt>SKU</dt>
+            <dd>
+              {ret.sku} <span className="category-pill">{ret.category}</span>
+            </dd>
           </div>
-          <div className="info-item">
-            <span className="info-label">Retail Price</span>
-            <span className="info-value">₹{Number(ret.retail_price).toLocaleString()}</span>
+          <div>
+            <dt>Retail price</dt>
+            <dd>₹{Number(ret.retail_price).toLocaleString()}</dd>
           </div>
-          <div className="info-item">
-            <span className="info-label">Warehouse Facility</span>
-            <span className="info-value">
+          <div>
+            <dt>Warehouse</dt>
+            <dd>
               {ret.facility_name} ({ret.warehouse_code})
-            </span>
+            </dd>
           </div>
-          <div className="info-item">
-            <span className="info-label">Serial Number</span>
-            <span className="info-value">{ret.serial_number || '—'}</span>
+          <div>
+            <dt>Serial number</dt>
+            <dd>{ret.serial_number || '—'}</dd>
           </div>
-          <div className="info-item">
-            <span className="info-label">Return Date</span>
-            <span className="info-value">
-              {formatDateOnly(ret.return_date)}
-            </span>
+          <div>
+            <dt>Return date</dt>
+            <dd>{formatDateOnly(ret.return_date)}</dd>
           </div>
-          <div className="info-item" style={{ gridColumn: 'span 2' }}>
-            <span className="info-label">Return Reason</span>
-            <span className="info-value">{ret.return_reason}</span>
+          <div className="wide">
+            <dt>Return reason</dt>
+            <dd>{ret.return_reason}</dd>
           </div>
           {ret.customer_comment && (
-            <div className="info-item" style={{ gridColumn: 'span 2' }}>
-              <span className="info-label">Customer Comment</span>
-              <span className="info-value" style={{ fontStyle: 'italic', color: '#555', whiteSpace: 'pre-line' }}>
-                "{ret.customer_comment}"
-              </span>
+            <div className="wide">
+              <dt>Customer comment</dt>
+              <dd className="quote">{ret.customer_comment}</dd>
             </div>
           )}
-        </div>
-      </div>
+        </dl>
+      </section>
 
-      {/* Outcome Section (When status is COMPLETED) */}
+      {/* Outcome (COMPLETED) */}
       {isCompleted && (
-        <div className="detail-card outcome-card" style={{ marginBottom: '1.5rem', borderLeft: '6px solid #2e7d32' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <section className="panel accent-left COMPLETED">
+          <div className="outcome-head">
             <div>
-              <span className="info-label">Execution Outcome</span>
-              <h2 style={{ margin: '0.25rem 0', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <h2>
                 Executed: {outcome.disposition_executed}
-                <span className="badge-accepted">COMPLETED</span>
+                <span className="mini-tag accepted">Completed</span>
               </h2>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: '0.85rem', color: '#757575', display: 'block' }}>
-                Completed {formatDateOnly(outcome.completion_date)}
-              </span>
-              <span style={{ fontSize: '0.8rem', color: '#9e9e9e' }}>
-                Partner: {outcome.execution_partner || 'Internal Logistics'}
-              </span>
+            <div className="outcome-when">
+              <div>Completed {formatDateOnly(outcome.completion_date)}</div>
+              <div>Partner: {outcome.execution_partner || 'Internal Logistics'}</div>
             </div>
           </div>
 
-          {/* Expected vs Actual Side-by-Side Comparison */}
-          <div style={{ marginBottom: '1rem', background: '#f5f7fa', borderRadius: '6px', padding: '1.25rem' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#37474f' }}>Recovery Financial Performance (Expected vs Actual)</h4>
-            <div className="comparison-grid">
-              <div className="comparison-col">
-                <span className="comparison-heading">Metric</span>
-                <div className="comparison-cell"><strong>Gross Revenue</strong></div>
-                <div className="comparison-cell"><strong>Total Cost</strong></div>
-                <div className="comparison-cell highlight"><strong>Net Value Recovery</strong></div>
-              </div>
-              <div className="comparison-col">
-                <span className="comparison-heading">Expected (Engine)</span>
-                <div className="comparison-cell">₹{expectedRevenue.toLocaleString()}</div>
-                <div className="comparison-cell">₹{expectedCost.toLocaleString()}</div>
-                <div className="comparison-cell highlight">₹{expectedNet.toLocaleString()}</div>
-              </div>
-              <div className="comparison-col">
-                <span className="comparison-heading">Actual (Realized)</span>
-                <div className="comparison-cell">₹{Number(outcome.actual_revenue).toLocaleString()}</div>
-                <div className="comparison-cell">₹{Number(outcome.actual_cost).toLocaleString()}</div>
-                <div className="comparison-cell highlight" style={{ color: actualNet >= 0 ? '#1b5e20' : '#c62828' }}>
-                  {formatRupees(actualNet)}
-                </div>
-              </div>
-              <div className="comparison-col">
-                <span className="comparison-heading">Variance</span>
-                <div className="comparison-cell">{formatSignedRupees(Number(outcome.actual_revenue) - expectedRevenue)}</div>
-                <div className="comparison-cell">{formatSignedRupees(Number(outcome.actual_cost) - expectedCost)}</div>
-                <div className="comparison-cell highlight" style={{ color: variance >= 0 ? '#1b5e20' : '#c62828' }}>
-                  {formatSignedRupees(variance)}
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="form-section-label">Expected by the engine against what was actually realised</p>
+          <table className="compare-table">
+            <thead>
+              <tr>
+                <th scope="col">Figure</th>
+                <th scope="col">Expected</th>
+                <th scope="col">Actual</th>
+                <th scope="col">Variance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Revenue</td>
+                <td>₹{expectedRevenue.toLocaleString()}</td>
+                <td>₹{Number(outcome.actual_revenue).toLocaleString()}</td>
+                <td>{formatSignedRupees(Number(outcome.actual_revenue) - expectedRevenue)}</td>
+              </tr>
+              <tr>
+                <td>Cost</td>
+                <td>₹{expectedCost.toLocaleString()}</td>
+                <td>₹{Number(outcome.actual_cost).toLocaleString()}</td>
+                <td>{formatSignedRupees(Number(outcome.actual_cost) - expectedCost)}</td>
+              </tr>
+              <tr className="total">
+                <td>Net recovery</td>
+                <td>{formatRupees(expectedNet)}</td>
+                <td className={signClass(actualNet)}>{formatRupees(actualNet)}</td>
+                <td className={signClass(variance)}>{formatSignedRupees(variance)}</td>
+              </tr>
+            </tbody>
+          </table>
 
           {outcome.outcome_notes && (
-            <div style={{ fontSize: '0.9rem', color: '#455a64', background: '#fafafa', padding: '0.75rem', borderRadius: '4px' }}>
-              <strong>Execution Notes:</strong> {outcome.outcome_notes}
-            </div>
+            <p className="notes-block">
+              <strong>Notes:</strong> {outcome.outcome_notes}
+            </p>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Outcome Form (When status is DECIDED, supervisor only) */}
+      {/* Outcome form (DECIDED, supervisor only) */}
       {isDecided && isSupervisorOrAdmin && (
-        <div className="detail-card" style={{ marginBottom: '1.5rem', border: '2px solid #2e7d32', background: '#f1f8e9' }}>
-          <h2 style={{ fontSize: '1.25rem', marginTop: 0, marginBottom: '0.25rem', color: '#1b5e20' }}>
-            Record Final Execution Outcome
-          </h2>
-          <p style={{ color: '#555', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            This return has a finalized decision (<strong>{decision?.final_disposition}</strong>). Record the financial recovery and completion details to mark this return as <strong>COMPLETED</strong>.
-          </p>
+        <section className="panel accent-left COMPLETED">
+          <div className="panel-head">
+            <div>
+              <h2>Record the outcome</h2>
+              <p>
+                The decision was <strong>{decision?.final_disposition}</strong>. Enter what actually happened to
+                complete this return.
+              </p>
+            </div>
+          </div>
 
           {outcomeError && (
-            <div role="alert" style={{ padding: '0.75rem', background: '#ffebee', color: '#c62828', borderRadius: '4px', marginBottom: '1rem' }}>
+            <div role="alert" className="alert error">
               {outcomeError}
             </div>
           )}
 
           <form onSubmit={handleOutcomeSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="field-row">
               <div className="form-group">
-                <label htmlFor="outcome-executed">Disposition Executed *</label>
+                <label htmlFor="outcome-executed">
+                  Disposition carried out <span className="required-star">*</span>
+                </label>
                 <select
                   id="outcome-executed"
                   value={outcomeExecuted}
@@ -596,7 +578,7 @@ export default function ReturnDetail() {
                 >
                   {ALL_DISPOSITIONS.map((d) => (
                     <option key={d} value={d}>
-                      {d} {d === decision?.final_disposition ? '(Decided Target)' : ''}
+                      {d} {d === decision?.final_disposition ? '(decided)' : ''}
                     </option>
                   ))}
                 </select>
@@ -606,11 +588,11 @@ export default function ReturnDetail() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="execution-partner">Execution Partner</label>
+                <label htmlFor="execution-partner">Partner</label>
                 <input
                   id="execution-partner"
                   type="text"
-                  placeholder="e.g. QuickRefurb Labs, Shiksha Foundation, EcoRecycle"
+                  placeholder="e.g. QuickRefurb Labs, Shiksha Foundation"
                   value={executionPartner}
                   onChange={(e) => setExecutionPartner(e.target.value)}
                   className="form-control"
@@ -621,9 +603,11 @@ export default function ReturnDetail() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="field-row three">
               <div className="form-group">
-                <label htmlFor="actual-revenue">Actual Revenue (₹) *</label>
+                <label htmlFor="actual-revenue">
+                  Actual revenue (₹) <span className="required-star">*</span>
+                </label>
                 <input
                   id="actual-revenue"
                   type="number"
@@ -640,7 +624,9 @@ export default function ReturnDetail() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="actual-cost">Actual Cost (₹) *</label>
+                <label htmlFor="actual-cost">
+                  Actual cost (₹) <span className="required-star">*</span>
+                </label>
                 <input
                   id="actual-cost"
                   type="number"
@@ -657,7 +643,9 @@ export default function ReturnDetail() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="completion-date">Completion Date *</label>
+                <label htmlFor="completion-date">
+                  Completion date <span className="required-star">*</span>
+                </label>
                 <input
                   id="completion-date"
                   type="date"
@@ -672,12 +660,12 @@ export default function ReturnDetail() {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label htmlFor="outcome-notes">Execution Notes</label>
+            <div className="form-group">
+              <label htmlFor="outcome-notes">Notes</label>
               <textarea
                 id="outcome-notes"
                 rows={2}
-                placeholder="Log invoice numbers, consignment tracking or notes..."
+                placeholder="Invoice numbers, consignment tracking, anything worth keeping"
                 value={outcomeNotes}
                 onChange={(e) => setOutcomeNotes(e.target.value)}
                 className="form-control"
@@ -687,194 +675,136 @@ export default function ReturnDetail() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={submittingOutcome}
-              className="btn-primary"
-              style={{ backgroundColor: '#2e7d32' }}
-            >
-              {submittingOutcome ? 'Recording...' : 'Record Outcome & Mark Completed'}
-            </button>
+            <div className="form-actions start">
+              <button type="submit" disabled={submittingOutcome} className="btn-accept">
+                {submittingOutcome ? 'Recording…' : 'Record outcome and complete'}
+              </button>
+            </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Decision Section (When status is DECIDED or COMPLETED) */}
+      {/* Decision (DECIDED or COMPLETED) */}
       {isDecidedOrLater && decision && (
-        <div className="detail-card decision-card" style={{ marginBottom: '1.5rem', borderLeft: '6px solid #1a237e' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <div>
-              <span className="info-label">Disposition Decision</span>
-              <h2 style={{ margin: '0.25rem 0', color: '#1a237e', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                Final: {decision.final_disposition}
-                {decision.is_override ? (
-                  <span className="badge-override">OVERRIDDEN</span>
-                ) : (
-                  <span className="badge-accepted">RECOMMENDATION ACCEPTED</span>
-                )}
-              </h2>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span className="confidence-pill">
-                Confidence: {(Number(decision.confidence_score) * 100).toFixed(1)}%
-              </span>
-            </div>
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Decision</h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1rem', background: '#f5f7fa', padding: '1rem', borderRadius: '4px' }}>
+          <RoutingSlip
+            kicker="Final route"
+            tag={
+              decision.is_override ? (
+                <span className="mini-tag override">Overridden</span>
+              ) : (
+                <span className="mini-tag">Recommendation accepted</span>
+              )
+            }
+            disposition={decision.final_disposition}
+            confidence={decision.confidence_score}
+            alternative={finalAlternative}
+          />
+
+          <dl className="facts decision-facts">
             <div>
-              <span className="info-label">Recommended</span>
-              <span className="info-value" style={{ fontWeight: 600 }}>
-                {decision.recommended_disposition}
-              </span>
+              <dt>Engine recommended</dt>
+              <dd>
+                <strong>{decision.recommended_disposition}</strong>
+              </dd>
             </div>
             <div>
-              <span className="info-label">Decided By</span>
-              <span className="info-value">
-                {decision.decided_by_name || `Operator #${decision.decided_by_operator_id}`}
-              </span>
+              <dt>Decided by</dt>
+              <dd>{decision.decided_by_name || `Operator #${decision.decided_by_operator_id}`}</dd>
             </div>
             <div>
-              <span className="info-label">Decided Date</span>
-              <span className="info-value">
-                {decision.decided_at ? new Date(decision.decided_at).toLocaleString() : '—'}
-              </span>
+              <dt>Decided at</dt>
+              <dd>{decision.decided_at ? new Date(decision.decided_at).toLocaleString() : '—'}</dd>
             </div>
-          </div>
+          </dl>
 
           {decision.is_override && (
-            <div style={{ padding: '0.75rem 1rem', background: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: '4px', marginBottom: '1rem' }}>
-              <strong style={{ color: '#e65100' }}>Override Justification:</strong>
-              <p style={{ margin: '0.25rem 0 0 0', color: '#bf360c' }}>{decision.override_reason}</p>
+            <div className="override-note">
+              <strong>Reason for override</strong>
+              {decision.override_reason}
             </div>
           )}
 
-          {/* Saved Alternatives */}
           {alternatives.length > 0 && (
-            <div style={{ marginTop: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem 0', color: '#37474f' }}>Evaluated Disposition Alternatives</h4>
-              <div className="recommendation-grid">
-                {alternatives.map((alt) => (
-                  <div
-                    key={alt.alternative_id || alt.disposition_type}
-                    className={`rec-card ${alt.disposition_type === decision.final_disposition ? 'selected-disposition' : ''} ${alt.is_recommended ? 'recommended-option' : ''}`}
-                  >
-                    <div className="rec-card-header">
-                      <span className="rec-rank">#{alt.rank_order}</span>
-                      <strong className="rec-title">{alt.disposition_type}</strong>
-                      {alt.is_recommended && <span className="rec-badge">Recommended</span>}
-                      {alt.disposition_type === decision.final_disposition && (
-                        <span className="final-badge">Final</span>
-                      )}
-                    </div>
-                    <div className="rec-metric-primary">
-                      <span className="metric-label">Net Recovery</span>
-                      <span className="metric-value">₹{Number(alt.net_expected_recovery).toLocaleString()}</span>
-                    </div>
-                    <div className="rec-metrics-row">
-                      <div>
-                        <span>Revenue:</span> ₹{Number(alt.estimated_revenue).toLocaleString()}
-                      </div>
-                      <div>
-                        <span>Cost:</span> ₹{Number(alt.estimated_cost).toLocaleString()}
-                      </div>
-                      <div>
-                        <span>Feasibility:</span> {(Number(alt.feasibility_score) * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                    {alt.rationale && <p className="rec-rationale">{alt.rationale}</p>}
-                  </div>
-                ))}
-              </div>
+            <div className="rank-section">
+              <h3>All routes the engine ranked</h3>
+              <RankList alternatives={alternatives} finalDisposition={decision.final_disposition} />
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Live Recommendation Section (When status is EVALUATED) */}
+      {/* Live recommendation (EVALUATED) */}
       {isEvaluated && (
-        <div className="detail-card" style={{ marginBottom: '1.5rem', border: '2px solid #3f51b5' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <section className="panel">
+          <div className="panel-head">
             <div>
-              <h2 style={{ fontSize: '1.3rem', margin: 0, color: '#1a237e' }}>
-                Decision Intelligence Recommendations
-              </h2>
-              <p style={{ margin: '0.25rem 0 0 0', color: '#555', fontSize: '0.9rem' }}>
-                Algorithmic disposition scoring based on physical condition grade, functional diagnostics, and financial recovery models.
-              </p>
+              <h2>Recommendation</h2>
+              <p>Ranked by the rules engine from the latest inspection: condition, function and expected recovery.</p>
             </div>
-            {recommendation && (
-              <span className="confidence-pill" style={{ fontSize: '0.95rem' }}>
-                Engine Confidence: {(Number(recommendation.confidence_score) * 100).toFixed(1)}%
-              </span>
-            )}
           </div>
 
           {decisionError && (
-            <div
-              role="alert"
-              style={{
-                padding: '0.85rem 1rem',
-                background: '#ffebee',
-                color: '#c62828',
-                borderRadius: '4px',
-                marginBottom: '1rem',
-                border: '1px solid #ef9a9a',
-              }}
-            >
+            <div role="alert" className="alert error">
               {decisionError}
             </div>
           )}
 
           {loadingRecommendation ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-              Computing optimal disposition rankings...
+            <div className="loading-container">
+              <div className="spinner" />
+              <span>Ranking dispositions…</span>
             </div>
           ) : recError ? (
-            <div role="alert" style={{ padding: '1rem', background: '#ffebee', color: '#c62828', borderRadius: '4px' }}>
+            <div role="alert" className="alert error">
               {recError}
             </div>
           ) : recommendation ? (
             <>
-              {/* Supervisor Decision Controls */}
-              {isSupervisorOrAdmin && (
-                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: '#e8eaf6', borderRadius: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                      <strong style={{ fontSize: '1rem', color: '#1a237e' }}>Supervisor Decision Required:</strong>
-                      <span style={{ display: 'block', fontSize: '0.9rem', color: '#455a64' }}>
-                        Accept the top recommendation (<strong>{recommendation.recommended_disposition}</strong>) or record an override.
-                      </span>
-                    </div>
+              <RoutingSlip
+                kicker="Recommended route"
+                disposition={recommendation.recommended_disposition}
+                confidence={recommendation.confidence_score}
+                alternative={recommendedAlternative}
+              />
 
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <button
-                        type="button"
-                        onClick={handleAcceptRecommendation}
-                        disabled={submittingDecision}
-                        className="btn-primary"
-                        style={{ backgroundColor: '#2e7d32' }}
-                      >
-                        {submittingDecision ? 'Recording...' : `Accept ${recommendation.recommended_disposition}`}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setOverrideOpen((prev) => !prev)}
-                        disabled={submittingDecision}
-                        className="btn-secondary"
-                      >
-                        {overrideOpen ? 'Cancel Override' : 'Override Recommendation'}
-                      </button>
-                    </div>
+              {isSupervisorOrAdmin ? (
+                <div className="decision-bar">
+                  <p className="decision-bar-text">
+                    <strong>Your decision.</strong> Accept {recommendation.recommended_disposition}, or choose another
+                    route and say why.
+                  </p>
+                  <div className="page-actions">
+                    <button
+                      type="button"
+                      onClick={handleAcceptRecommendation}
+                      disabled={submittingDecision}
+                      className="btn-accept"
+                    >
+                      {submittingDecision ? 'Recording…' : `Accept ${recommendation.recommended_disposition}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOverrideOpen((prev) => !prev)}
+                      disabled={submittingDecision}
+                      className="btn-secondary"
+                      aria-expanded={overrideOpen}
+                    >
+                      {overrideOpen ? 'Close override' : 'Choose another route'}
+                    </button>
                   </div>
 
                   {overrideOpen && (
-                    <form onSubmit={handleOverrideSubmit} style={{ marginTop: '1.25rem', borderTop: '1px solid #c5cae9', paddingTop: '1.25rem' }}>
-                      <h4 style={{ margin: '0 0 0.75rem 0', color: '#1a237e' }}>Record Disposition Override</h4>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem' }}>
-                        <div className="form-group" style={{ margin: 0 }}>
-                          <label htmlFor="override-disposition">Select Target Disposition *</label>
+                    <form onSubmit={handleOverrideSubmit} className="override-form">
+                      <div className="field-row one-two">
+                        <div className="form-group">
+                          <label htmlFor="override-disposition">
+                            Route <span className="required-star">*</span>
+                          </label>
                           <select
                             id="override-disposition"
                             value={selectedDisposition}
@@ -884,18 +814,20 @@ export default function ReturnDetail() {
                           >
                             {ALL_DISPOSITIONS.map((d) => (
                               <option key={d} value={d}>
-                                {d} {d === recommendation.recommended_disposition ? '(Engine Pick)' : ''}
+                                {d} {d === recommendation.recommended_disposition ? '(recommended)' : ''}
                               </option>
                             ))}
                           </select>
                         </div>
 
-                        <div className="form-group" style={{ margin: 0 }}>
-                          <label htmlFor="override-reason">Reason for Override *</label>
+                        <div className="form-group">
+                          <label htmlFor="override-reason">
+                            Reason for override <span className="required-star">*</span>
+                          </label>
                           <input
                             id="override-reason"
                             type="text"
-                            placeholder="e.g. Partner NGO requested this model for school program"
+                            placeholder="e.g. Partner NGO requested this model for a school programme"
                             value={overrideReason}
                             onChange={(e) => setOverrideReason(e.target.value)}
                             className="form-control"
@@ -904,69 +836,36 @@ export default function ReturnDetail() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                        <button
-                          type="submit"
-                          disabled={submittingDecision}
-                          className="btn-primary"
-                          style={{ backgroundColor: '#e65100' }}
-                        >
-                          {submittingDecision ? 'Submitting Override...' : 'Confirm Override'}
+                      <div className="form-actions">
+                        <button type="submit" disabled={submittingDecision} className="btn-override">
+                          {submittingDecision ? 'Saving override…' : 'Save override'}
                         </button>
                       </div>
                     </form>
                   )}
                 </div>
+              ) : (
+                <div className="decision-bar">
+                  <p className="decision-bar-text">A supervisor will accept this route or choose another.</p>
+                </div>
               )}
 
-              {/* 6 Ranked Recommendation Cards */}
-              <div className="recommendation-grid">
-                {(recommendation.alternatives || []).map((alt) => (
-                  <div
-                    key={alt.disposition_type}
-                    className={`rec-card ${alt.is_recommended ? 'recommended-option' : ''}`}
-                  >
-                    <div className="rec-card-header">
-                      <span className="rec-rank">#{alt.rank_order}</span>
-                      <strong className="rec-title">{alt.disposition_type}</strong>
-                      {alt.is_recommended && <span className="rec-badge">Recommended</span>}
-                    </div>
-
-                    <div className="rec-metric-primary">
-                      <span className="metric-label">Net Expected Recovery</span>
-                      <span className="metric-value">₹{Number(alt.net_expected_recovery).toLocaleString()}</span>
-                    </div>
-
-                    <div className="rec-metrics-row">
-                      <div>
-                        <span>Est. Revenue:</span> ₹{Number(alt.estimated_revenue).toLocaleString()}
-                      </div>
-                      <div>
-                        <span>Est. Cost:</span> ₹{Number(alt.estimated_cost).toLocaleString()}
-                      </div>
-                      <div>
-                        <span>Feasibility:</span> {(Number(alt.feasibility_score) * 100).toFixed(0)}%
-                      </div>
-                    </div>
-
-                    {alt.rationale && <p className="rec-rationale">{alt.rationale}</p>}
-                  </div>
-                ))}
+              <div className="rank-section">
+                <h3>All six routes, ranked</h3>
+                <RankList alternatives={liveAlternatives} />
               </div>
             </>
           ) : null}
-        </div>
+        </section>
       )}
 
-      {/* Inspection Actions and Form */}
+      {/* Start inspection (RECEIVED) */}
       {status === 'RECEIVED' && (
-        <div className="detail-card" style={{ marginBottom: '1.5rem', background: '#e8eaf6', borderColor: '#c5cae9' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <section className="panel accent-left UNDER_INSPECTION">
+          <div className="action-strip">
             <div>
-              <h3 style={{ margin: 0, color: '#1a237e' }}>Intake Inspection</h3>
-              <p style={{ margin: '0.25rem 0 0 0', color: '#555', fontSize: '0.9rem' }}>
-                Start official intake triage to transition status to UNDER INSPECTION.
-              </p>
+              <h2>Start inspection</h2>
+              <p className="muted small">Moves this return to Under inspection while you examine the device.</p>
             </div>
             <button
               type="button"
@@ -974,25 +873,28 @@ export default function ReturnDetail() {
               disabled={startingInspection}
               className="btn-primary"
             >
-              {startingInspection ? 'Starting...' : 'Start Inspection'}
+              {startingInspection ? 'Starting…' : 'Start inspection'}
             </button>
           </div>
-        </div>
+        </section>
       )}
 
+      {/* Inspection form */}
       {canInspect && (
-        <div className="detail-card" style={{ marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '0.25rem', color: '#1a237e' }}>
-            {inspections.length > 0 ? 'Record Additional / Updated Inspection' : 'Record Initial Inspection'}
-          </h2>
-          <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            Submitting an inspection transitions this return into <strong>EVALUATED</strong> and triggers the decision intelligence engine.
-          </p>
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>{inspections.length > 0 ? 'Record another inspection' : 'Record inspection'}</h2>
+              <p>Saving an inspection marks the return Evaluated and re-ranks the six routes.</p>
+            </div>
+          </div>
 
           <form onSubmit={handleInspectionSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="field-row">
               <div className="form-group">
-                <label htmlFor="condition-grade">Condition Grade *</label>
+                <label htmlFor="condition-grade">
+                  Condition grade <span className="required-star">*</span>
+                </label>
                 <select
                   id="condition-grade"
                   value={conditionGrade}
@@ -1012,7 +914,9 @@ export default function ReturnDetail() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="functional-status">Functional Status *</label>
+                <label htmlFor="functional-status">
+                  Functional status <span className="required-star">*</span>
+                </label>
                 <select
                   id="functional-status"
                   value={functionalStatus}
@@ -1032,48 +936,50 @@ export default function ReturnDetail() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+            <div className="check-row">
+              <label className="check">
                 <input
                   type="checkbox"
                   checked={hasOriginalPackaging}
                   onChange={(e) => setHasOriginalPackaging(e.target.checked)}
                 />
-                Has Original Packaging
+                Original packaging
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <label className="check">
                 <input
                   type="checkbox"
                   checked={hasAllAccessories}
                   onChange={(e) => setHasAllAccessories(e.target.checked)}
                 />
-                Has All Accessories
+                All accessories
               </label>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1rem' }}>
-              <label htmlFor="repair-estimate">Repair Estimate (₹)</label>
-              <input
-                id="repair-estimate"
-                type="number"
-                min="0"
-                step="0.01"
-                value={repairEstimate}
-                onChange={(e) => setRepairEstimate(e.target.value)}
-                className="form-control"
-              />
-              {inspectionFieldErrors.repair_estimate && (
-                <span className="field-error">{inspectionFieldErrors.repair_estimate}</span>
-              )}
+            <div className="field-row">
+              <div className="form-group">
+                <label htmlFor="repair-estimate">Repair estimate (₹)</label>
+                <input
+                  id="repair-estimate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={repairEstimate}
+                  onChange={(e) => setRepairEstimate(e.target.value)}
+                  className="form-control"
+                />
+                {inspectionFieldErrors.repair_estimate && (
+                  <span className="field-error">{inspectionFieldErrors.repair_estimate}</span>
+                )}
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label htmlFor="diagnostic-notes">Diagnostic Notes</label>
+            <div className="form-group">
+              <label htmlFor="diagnostic-notes">Diagnostic notes</label>
               <textarea
                 id="diagnostic-notes"
                 rows={3}
-                placeholder="Observed defects, component diagnosis, or testing observations..."
+                placeholder="Defects found, components tested, anything the supervisor should know"
                 value={diagnosticNotes}
                 onChange={(e) => setDiagnosticNotes(e.target.value)}
                 className="form-control"
@@ -1083,81 +989,169 @@ export default function ReturnDetail() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={submittingInspection}
-              className="btn-primary"
-            >
-              {submittingInspection ? 'Submitting Inspection...' : 'Submit Inspection'}
-            </button>
+            <div className="form-actions start">
+              <button type="submit" disabled={submittingInspection} className="btn-primary">
+                {submittingInspection ? 'Saving inspection…' : 'Save inspection'}
+              </button>
+            </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Inspection History */}
-      <div className="detail-card">
-        <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '1rem', color: '#1a237e' }}>
-          Inspection History ({inspections.length})
-        </h2>
+      {/* Inspection history */}
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Inspection history</h2>
+          <span className="muted small">
+            {inspections.length} {inspections.length === 1 ? 'inspection' : 'inspections'}
+          </span>
+        </div>
 
         {inspections.length === 0 ? (
-          <p style={{ color: '#666', fontStyle: 'italic', margin: 0 }}>
-            No inspections have been recorded yet for this return.
-          </p>
+          <p className="muted">No inspections recorded yet.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <ol className="history-list">
             {inspections.map((insp, idx) => (
-              <div
-                key={insp.inspection_id || idx}
-                style={{
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '6px',
-                  padding: '1rem 1.25rem',
-                  backgroundColor: idx === 0 ? '#f9fbe7' : '#ffffff',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600, color: '#37474f' }}>
-                    {idx === 0 ? 'Latest Inspection' : `Inspection #${insp.inspection_id}`} • By{' '}
+              <li key={insp.inspection_id || idx} className="history-item">
+                <div className="history-head">
+                  <span className="history-who">
+                    {idx === 0 ? 'Latest inspection' : `Inspection #${insp.inspection_id}`}, by{' '}
                     {insp.inspector_name || `Inspector #${insp.inspector_id}`}
                   </span>
-                  <span style={{ fontSize: '0.8rem', color: '#757575' }}>
+                  <span className="muted small">
                     {insp.inspected_at ? new Date(insp.inspected_at).toLocaleString() : '—'}
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', fontSize: '0.85rem' }}>
+                <dl className="facts four">
                   <div>
-                    <span style={{ color: '#757575', display: 'block' }}>Grade</span>
-                    <strong>{insp.condition_grade}</strong>
+                    <dt>Grade</dt>
+                    <dd>
+                      <strong>{insp.condition_grade}</strong>
+                    </dd>
                   </div>
                   <div>
-                    <span style={{ color: '#757575', display: 'block' }}>Functional Status</span>
-                    <strong>{insp.functional_status}</strong>
+                    <dt>Functional status</dt>
+                    <dd>
+                      <strong>{insp.functional_status}</strong>
+                    </dd>
                   </div>
                   <div>
-                    <span style={{ color: '#757575', display: 'block' }}>Repair Estimate</span>
-                    <strong>₹{Number(insp.repair_estimate || 0).toLocaleString()}</strong>
+                    <dt>Repair estimate</dt>
+                    <dd>
+                      <strong>₹{Number(insp.repair_estimate || 0).toLocaleString()}</strong>
+                    </dd>
                   </div>
                   <div>
-                    <span style={{ color: '#757575', display: 'block' }}>Packaging / Acc.</span>
-                    <span>
-                      {insp.has_original_packaging ? '✓ Box' : '✗ No Box'},{' '}
-                      {insp.has_all_accessories ? '✓ Accs' : '✗ Missing'}
-                    </span>
+                    <dt>Packaging, accessories</dt>
+                    <dd>
+                      {insp.has_original_packaging ? '✓ Box' : '✗ No box'},{' '}
+                      {insp.has_all_accessories ? '✓ All accessories' : '✗ Missing'}
+                    </dd>
                   </div>
-                </div>
+                </dl>
 
                 {insp.diagnostic_notes && (
-                  <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#555', borderTop: '1px dashed #e0e0e0', paddingTop: '0.5rem' }}>
+                  <p className="history-notes">
                     <strong>Notes:</strong> {insp.diagnostic_notes}
-                  </div>
+                  </p>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         )}
+      </section>
+    </div>
+  );
+}
+
+// The decided or recommended route, printed as a yellow routing slip.
+function RoutingSlip({ kicker, tag, disposition, confidence, alternative }) {
+  return (
+    <div className="slip" data-disp={disposition}>
+      <div className="slip-stub">
+        <span className="slip-stub-label">Confidence</span>
+        <span className="slip-stub-value">{(Number(confidence) * 100).toFixed(1)}%</span>
+        <span className="slip-stub-note">engine score</span>
       </div>
+      <div className="slip-body">
+        <div className="slip-kicker">
+          {kicker}
+          {tag}
+        </div>
+        <div className="slip-disposition">{disposition}</div>
+        {alternative?.rationale && <p className="slip-rationale">{alternative.rationale}</p>}
+      </div>
+      {alternative && (
+        <div className="slip-figures">
+          <span className="slip-net-label">Net expected recovery</span>
+          <span className="slip-net">{formatRupees(alternative.net_expected_recovery)}</span>
+          <span className="slip-sub">
+            Revenue ₹{Number(alternative.estimated_revenue).toLocaleString()}, cost ₹
+            {Number(alternative.estimated_cost).toLocaleString()}
+          </span>
+          <span className="slip-sub">Feasibility {(Number(alternative.feasibility_score) * 100).toFixed(0)}%</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// All six ranked alternatives in one dense list.
+function RankList({ alternatives, finalDisposition }) {
+  return (
+    <div className="rank-table">
+      <div className="rank-head" aria-hidden="true">
+        <span>#</span>
+        <span>Route</span>
+        <span className="num">Net recovery</span>
+        <span className="num">Revenue</span>
+        <span className="num">Cost</span>
+        <span>Feasibility</span>
+      </div>
+      <ol className="rank-list">
+        {alternatives.map((alt) => {
+          const isFinal = finalDisposition && alt.disposition_type === finalDisposition;
+          const feasibility = Number(alt.feasibility_score) * 100;
+          return (
+            <li
+              key={alt.alternative_id || alt.disposition_type}
+              className={`rank-row ${alt.is_recommended ? 'is-recommended' : ''} ${isFinal ? 'is-final' : ''}`}
+              data-disp={alt.disposition_type}
+            >
+              <span className="rank-n">{alt.rank_order}</span>
+              <div className="rank-main">
+                <div className="rank-name">
+                  <span className="disp-dot" />
+                  {alt.disposition_type}
+                  {alt.is_recommended && <span className="mini-tag recommended">Recommended</span>}
+                  {isFinal && <span className="mini-tag final">Final</span>}
+                </div>
+                {alt.rationale && <p className="rank-why">{alt.rationale}</p>}
+              </div>
+              <div className="rank-fig net">
+                <span className="rank-fig-label">Net recovery</span>
+                {formatRupees(alt.net_expected_recovery)}
+              </div>
+              <div className="rank-fig">
+                <span className="rank-fig-label">Revenue</span>₹{Number(alt.estimated_revenue).toLocaleString()}
+              </div>
+              <div className="rank-fig">
+                <span className="rank-fig-label">Cost</span>₹{Number(alt.estimated_cost).toLocaleString()}
+              </div>
+              <div className="rank-meter">
+                <span className="rank-fig-label">Feasibility</span>
+                <div className="meter">
+                  <div className="meter-track">
+                    <div className="meter-fill" style={{ width: `${feasibility}%` }} />
+                  </div>
+                  <span className="meter-num">{feasibility.toFixed(0)}%</span>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
