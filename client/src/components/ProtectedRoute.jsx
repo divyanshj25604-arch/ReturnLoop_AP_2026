@@ -8,8 +8,9 @@ export default function ProtectedRoute({ children, minRole }) {
 
   if (loading) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <p>Loading session...</p>
+      <div className="loading-container session-loading">
+        <div className="spinner" />
+        <span>Checking your session…</span>
       </div>
     );
   }
@@ -20,13 +21,13 @@ export default function ProtectedRoute({ children, minRole }) {
 
   if (minRole && !hasRole(minRole)) {
     return (
-      <div className="not-allowed-card" style={{ padding: '2rem', color: '#c00' }}>
-        <h2>Access Restricted</h2>
+      <div className="not-allowed-card">
+        <h2>You don't have access to this page</h2>
         <p>
-          This section requires the <strong>{minRole}</strong> role or higher.
+          It needs the <strong>{minRole}</strong> role or higher.
         </p>
         <p>
-          Your current role is: <strong>{user.app_role}</strong>.
+          You're signed in as <strong>{user.app_role}</strong>.
         </p>
       </div>
     );

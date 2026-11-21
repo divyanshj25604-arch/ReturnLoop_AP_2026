@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../api/client';
+import { statusLabel } from '../utils/status';
+import { formatDateOnly } from '../utils/format';
 
+// Lifecycle order; Cancelled is an exit, shown apart from the five steps.
 const STATUS_CONFIG = [
-  { key: 'RECEIVED', label: 'Received', color: '#607d8b', bg: '#eceff1' },
-  { key: 'UNDER_INSPECTION', label: 'Under Inspection', color: '#e65100', bg: '#fff3e0' },
-  { key: 'EVALUATED', label: 'Evaluated', color: '#6a1b9a', bg: '#f3e5f5' },
-  { key: 'DECIDED', label: 'Decided', color: '#1565c0', bg: '#e3f2fd' },
-  { key: 'COMPLETED', label: 'Completed', color: '#2e7d32', bg: '#e8f5e9' },
-  { key: 'CANCELLED', label: 'Cancelled', color: '#c62828', bg: '#ffebee' },
+  { key: 'RECEIVED', label: 'Received' },
+  { key: 'UNDER_INSPECTION', label: 'Under inspection' },
+  { key: 'EVALUATED', label: 'Evaluated' },
+  { key: 'DECIDED', label: 'Decided' },
+  { key: 'COMPLETED', label: 'Completed' },
+  { key: 'CANCELLED', label: 'Cancelled' },
 ];
 
 const DISPOSITION_CONFIG = [
-  { key: 'Resell', color: '#2e7d32' },
-  { key: 'Refurbish', color: '#1565c0' },
-  { key: 'Exchange', color: '#00838f' },
-  { key: 'Donate', color: '#6a1b9a' },
-  { key: 'Recycle', color: '#ef6c00' },
-  { key: 'Write-off', color: '#757575' },
+  { key: 'Resell' },
+  { key: 'Refurbish' },
+  { key: 'Exchange' },
+  { key: 'Donate' },
+  { key: 'Recycle' },
+  { key: 'Write-off' },
 ];
 
 export default function Dashboard() {
@@ -86,27 +89,22 @@ export default function Dashboard() {
 
   return (
     <div className="page-dashboard">
-      <div className="dashboard-header">
-        <div>
-          <h1 style={{ margin: 0, color: '#1a237e' }}>Executive Dashboard</h1>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#555', fontSize: '0.9rem' }}>
-            Decision intelligence metrics, recovery performance, and return pipeline.
-          </p>
+      <div className="page-head">
+        <div className="page-head-text">
+          <h1>Dashboard</h1>
+          <p className="page-sub">Where returns are in the pipeline, what was decided, and how much value was recovered.</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <label htmlFor="dashboard-wh-select" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#37474f' }}>
-            Facility Filter:
-          </label>
+        <div className="filter-group">
+          <label htmlFor="dashboard-wh-select">Warehouse</label>
           <select
             id="dashboard-wh-select"
             value={warehouseId}
             onChange={(e) => setWarehouseId(e.target.value)}
             disabled={loading}
             className="filter-select"
-            style={{ minWidth: '220px' }}
           >
-            <option value="">All Warehouses (Enterprise)</option>
+            <option value="">All warehouses</option>
             {warehouses.map((wh) => (
               <option key={wh.warehouse_id} value={wh.warehouse_id}>
                 {wh.warehouse_code} — {wh.facility_name}
@@ -119,7 +117,7 @@ export default function Dashboard() {
       {error && (
         <div className="error-banner" role="alert">
           <div>
-            <strong>Unable to load dashboard metrics:</strong> {error}
+            <strong>Couldn't load the dashboard.</strong> {error}
           </div>
           <button type="button" className="retry-btn" onClick={fetchDashboard}>
             Retry
@@ -128,145 +126,137 @@ export default function Dashboard() {
       )}
 
       {loading ? (
-        <div className="loading-container" style={{ padding: '4rem 1.5rem' }}>
+        <div className="panel loading-container">
           <div className="spinner" />
-          <span>Loading live dashboard intelligence...</span>
+          <span>Loading dashboard…</span>
         </div>
       ) : (
         <>
-          {/* Top Level Key Metric Summary Tiles */}
-          <div className="dashboard-tiles-grid">
-            <div className="summary-tile">
-              <span className="tile-label">Total Expected Recovery</span>
-              <span className="tile-value primary">₹{expectedRecovery.toLocaleString()}</span>
-              <span className="tile-desc">Algorithmic recommendation value</span>
+          <section className="kpi-strip" aria-label="Key figures">
+            <div className="kpi">
+              <span className="kpi-value">₹{expectedRecovery.toLocaleString()}</span>
+              <span className="kpi-label">Expected recovery</span>
+              <span className="kpi-desc">Net value of the engine's recommendations</span>
             </div>
-
-            <div className="summary-tile">
-              <span className="tile-label">Total Actual Realized</span>
-              <span className="tile-value success">₹{actualRecovery.toLocaleString()}</span>
-              <span className="tile-desc">Completed execution net revenue</span>
+            <div className="kpi">
+              <span className="kpi-value">₹{actualRecovery.toLocaleString()}</span>
+              <span className="kpi-label">Actual recovery</span>
+              <span className="kpi-desc">Net value realised on completed returns</span>
             </div>
-
-            <div className="summary-tile">
-              <span className="tile-label">Supervisor Override Rate</span>
-              <span className={`tile-value ${overrideRate > 30 ? 'warning' : 'primary'}`}>
+            <div className="kpi">
+              <span className={`kpi-value ${overrideRate > 30 ? 'warning' : ''}`}>
                 {overrideRate.toFixed(1)}%
               </span>
-              <span className="tile-desc">Dispositions modified from engine</span>
+              <span className="kpi-label">Override rate</span>
+              <span className="kpi-desc">Decisions where a supervisor chose differently</span>
             </div>
-
-            <div className="summary-tile">
-              <span className="tile-label">Total Return Volume</span>
-              <span className="tile-value">{totalReturnsCount.toLocaleString()}</span>
-              <span className="tile-desc">Intake items across facilities</span>
+            <div className="kpi">
+              <span className="kpi-value">{totalReturnsCount.toLocaleString()}</span>
+              <span className="kpi-label">Returns</span>
+              <span className="kpi-desc">All returns received</span>
             </div>
-          </div>
+          </section>
 
-          {/* Return Status Distribution */}
-          <div className="detail-card" style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: '#37474f' }}>
-              Intake Lifecycle Pipeline Breakdown
-            </h3>
-            <div className="status-tiles-grid">
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>Pipeline</h2>
+                <p>Returns at each lifecycle step right now.</p>
+              </div>
+            </div>
+            <div className="pipeline-bar" aria-hidden="true">
+              {STATUS_CONFIG.map((cfg) => {
+                const count = Number(byStatus[cfg.key]) || 0;
+                if (!count) return null;
+                return <div key={cfg.key} className={`pipeline-seg ${cfg.key}`} style={{ flexGrow: count }} />;
+              })}
+            </div>
+            <div className="pipeline-steps">
               {STATUS_CONFIG.map((cfg) => {
                 const count = byStatus[cfg.key] || 0;
                 return (
-                  <div
-                    key={cfg.key}
-                    className="status-tile"
-                    style={{ backgroundColor: cfg.bg, color: cfg.color }}
-                  >
-                    <span className="status-tile-count">{count}</span>
-                    <span className="status-tile-label">{cfg.label}</span>
-                  </div>
+                  <React.Fragment key={cfg.key}>
+                    {cfg.key === 'CANCELLED' && <div className="pipeline-gap" />}
+                    <div className={`pipeline-step ${cfg.key}`}>
+                      <span className="pipeline-count">{count}</span>
+                      <span className="pipeline-label">{cfg.label}</span>
+                    </div>
+                  </React.Fragment>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          {/* 2-Column Section: Disposition Breakdown & Recent Activity */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            {/* Disposition Breakdown Chart */}
-            <div className="detail-card">
-              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.05rem', color: '#37474f' }}>
-                Decided Dispositions
-              </h3>
-              <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#757575' }}>
-                Distribution of finalized dispositions decided by supervisors.
-              </p>
+          <div className="two-col">
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>Decisions by disposition</h2>
+                  <p>Final dispositions chosen by supervisors.</p>
+                </div>
+              </div>
 
               <div className="disposition-bars-list">
                 {DISPOSITION_CONFIG.map((disp) => {
                   const count = byDisp[disp.key] || 0;
                   const pct = ((count / maxDispCount) * 100).toFixed(0);
                   return (
-                    <div key={disp.key} className="disposition-bar-row">
-                      <span className="disp-label">{disp.key}</span>
+                    <div key={disp.key} className="disposition-bar-row" data-disp={disp.key}>
+                      <span className="disp-label">
+                        <span className="disp-dot" />
+                        {disp.key}
+                      </span>
                       <div className="disp-track">
-                        <div
-                          className="disp-fill"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: disp.color,
-                          }}
-                        />
+                        <div className="disp-fill" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="disp-count">{count}</span>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* Recent Returns Stream */}
-            <div className="detail-card" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#37474f' }}>
-                  Recent Intake Activity
-                </h3>
-                <Link to="/returns" style={{ fontSize: '0.85rem', color: '#1a237e', textDecoration: 'none', fontWeight: 600 }}>
-                  View all returns →
+            <section className="panel">
+              <div className="panel-head">
+                <div>
+                  <h2>Recent returns</h2>
+                </div>
+                <Link to="/returns" className="panel-link">
+                  View all returns
                 </Link>
               </div>
 
               {recent.length === 0 ? (
-                <div className="empty-state-card" style={{ border: 'none', padding: '2rem 1rem', margin: 'auto 0' }}>
-                  <div className="empty-state-icon">📋</div>
-                  <h4 className="empty-state-title" style={{ fontSize: '1rem' }}>No recent activity</h4>
-                  <p className="empty-state-desc" style={{ fontSize: '0.85rem' }}>
-                    There are no recent returns logged for the selected facility filter.
+                <div className="empty-state-card">
+                  <h3 className="empty-state-title">No recent returns</h3>
+                  <p className="empty-state-desc">
+                    Nothing has been received at this warehouse yet. Pick another warehouse or view all.
                   </p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
+                <ul className="recent-list">
                   {recent.map((ret) => (
-                    <div
-                      key={ret.return_id}
-                      onClick={() => navigate(`/returns/${ret.return_id}`)}
-                      className="recent-return-item"
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#1a237e', fontSize: '0.9rem' }}>
-                          {ret.return_tracking_number}
+                    <li key={ret.return_id}>
+                      <div
+                        onClick={() => navigate(`/returns/${ret.return_id}`)}
+                        className="recent-return-item"
+                      >
+                        <div className="recent-main">
+                          <span className="tracking">{ret.return_tracking_number}</span>
+                          <span className="cell-sub">
+                            {ret.brand} {ret.model_name}
+                          </span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#555' }}>
-                          {ret.brand} {ret.model_name}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span className={`status-badge ${ret.status}`} style={{ fontSize: '0.7rem' }}>
-                          {ret.status.replace(/_/g, ' ')}
-                        </span>
-                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.2rem' }}>
-                          {ret.return_date || '—'}
+                        <div className="recent-meta">
+                          <span className={`status-tag ${ret.status}`}>{statusLabel(ret.status)}</span>
+                          <span className="cell-sub">{formatDateOnly(ret.return_date)}</span>
                         </div>
                       </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
+            </section>
           </div>
         </>
       )}
