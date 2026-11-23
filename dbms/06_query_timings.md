@@ -3,20 +3,21 @@
 **Project:** Return Loop (Reverse Logistics Decision Intelligence Platform)  
 **Role:** Database Queries & Testing / ER Documentation (Devanshi Kumari)  
 **Assignment:** AP CP1  
-**Database Engine:** PostgreSQL 17.11 (returnloop_db)  
+**Database Engine:** PostgreSQL 17.11 (`returnloop_db`)  
 **Source Artifacts:** `dbms/03_schema.sql`, `dbms/04_seed.sql`, `dbms/05_queries.sql`  
 
 ---
 
 ## 1. Test Environment & Verification Summary
 
-All 26 SQL queries were executed against a live PostgreSQL instance (`returnloop_db`). The test suite verified schema constraints, referential integrity, multi-table joins, aggregations, and transactional DML operations.
+All 26 SQL queries were executed against a live PostgreSQL instance (`returnloop_db`). The test suite systematically verified schema constraints, referential integrity, join semantics, grouping aggregations, and transactional DML operations.
 
 ### Executive Test Metrics
 | Metric | Value | Status |
 |---|---|---|
 | **Database Engine** | PostgreSQL 17.11 | PASS |
 | **Number of Tables Tested** | 8 | PASS |
+| **Total Seed Rows Loaded** | 86 | PASS |
 | **Total Queries Executed** | 26 | PASS |
 | **Successful Queries** | 26 | PASS |
 | **Failed Queries** | 0 | NONE |
@@ -25,9 +26,9 @@ All 26 SQL queries were executed against a live PostgreSQL instance (`returnloop
 
 ---
 
-## 2. Query Timing Benchmarks (3 Consecutive Runs)
+## 2. Comprehensive Query Timing Benchmarks
 
-Each query was executed three consecutive times using native PostgreSQL timing (`\timing on`). Timings are reported in milliseconds (ms), with the arithmetic average calculated per query:
+Each query was executed **three consecutive times** using native PostgreSQL timing (`\timing on`). Timings are reported in milliseconds (ms), with the arithmetic average calculated per query:
 
 | Query ID & Description | Category | Run 1 (ms) | Run 2 (ms) | Run 3 (ms) | Average (ms) | Execution Status |
 |---|---|---|---|---|---|---|
