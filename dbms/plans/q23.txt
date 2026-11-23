@@ -1,0 +1,10 @@
+Insert on public.disposition_decisions  (cost=0.00..0.02 rows=1 width=181) (actual time=0.211..0.212 rows=1.00 loops=1)
+  Output: disposition_decisions.decision_id, disposition_decisions.return_id, disposition_decisions.final_disposition, disposition_decisions.confidence_score
+  Buffers: shared hit=32 dirtied=5
+  ->  Result  (cost=0.00..0.02 rows=1 width=181) (actual time=0.028..0.028 rows=1.00 loops=1)
+        Output: nextval('disposition_decisions_decision_id_seq'::regclass), 10, 'Resell'::character varying(20), 'Resell'::character varying(20), 1, false, NULL::text, 0.950::numeric(4,3), CURRENT_TIMESTAMP
+        Buffers: shared hit=14 dirtied=1
+Planning Time: 0.010 ms
+Trigger RI_ConstraintTrigger_c_17047 for constraint fk_decisions_return: time=0.104 calls=1
+Trigger RI_ConstraintTrigger_c_17052 for constraint fk_decisions_operator: time=0.087 calls=1
+Execution Time: 0.416 ms

@@ -1,0 +1,49 @@
+================================================================================
+Query R17 [READ]: Calculate returns handled by each warehouse facility
+Original ID: C.6
+================================================================================
+SQL Statement:
+SELECT
+    w.warehouse_id,
+    w.warehouse_code,
+    w.facility_name,
+    w.city,
+    w.capacity,
+    COUNT(r.return_id) AS total_returns_handled,
+    COUNT(r.return_id) FILTER (WHERE r.status = 'COMPLETED') AS completed_returns,
+    COUNT(r.return_id) FILTER (WHERE r.status != 'COMPLETED' AND r.status != 'CANCELLED') AS active_queue,
+    ROUND((COUNT(r.return_id)::NUMERIC / w.capacity) * 100, 2) AS intake_utilization_percent
+FROM warehouses w
+LEFT JOIN returns r ON w.warehouse_id = r.warehouse_id
+GROUP BY w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.capacity
+ORDER BY total_returns_handled DESC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=24.50..24.85 rows=140 width=458) (actual time=0.072..0.074 rows=4.00 loops=1)
+  Output: w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.capacity, (count(r.return_id)), (count(r.return_id) FILTER (WHERE ((r.status)::text = 'COMPLETED'::text))), (count(r.return_id) FILTER (WHERE (((r.status)::text <> 'COMPLETED'::text) AND ((r.status)::text <> 'CANCELLED'::text)))), (round((((count(r.return_id))::numeric / (w.capacity)::numeric) * '100'::numeric), 2))
+  Sort Key: (count(r.return_id)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=2
+  ->  HashAggregate  (cost=16.36..19.50 rows=140 width=458) (actual time=0.060..0.067 rows=4.00 loops=1)
+        Output: w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.capacity, count(r.return_id), count(r.return_id) FILTER (WHERE ((r.status)::text = 'COMPLETED'::text)), count(r.return_id) FILTER (WHERE (((r.status)::text <> 'COMPLETED'::text) AND ((r.status)::text <> 'CANCELLED'::text))), round((((count(r.return_id))::numeric / (w.capacity)::numeric) * '100'::numeric), 2)
+        Group Key: w.warehouse_code
+        Batches: 1  Memory Usage: 40kB
+        Buffers: shared hit=2
+        ->  Hash Left Join  (cost=1.32..13.90 rows=140 width=415) (actual time=0.030..0.037 rows=14.00 loops=1)
+              Output: w.warehouse_code, w.warehouse_id, w.facility_name, w.city, w.capacity, r.return_id, r.status
+              Hash Cond: (w.warehouse_id = r.warehouse_id)
+              Buffers: shared hit=2
+              ->  Seq Scan on public.warehouses w  (cost=0.00..11.40 rows=140 width=402) (actual time=0.007..0.008 rows=4.00 loops=1)
+                    Output: w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.state, w.capacity, w.created_at
+                    Buffers: shared hit=1
+              ->  Hash  (cost=1.14..1.14 rows=14 width=17) (actual time=0.018..0.018 rows=14.00 loops=1)
+                    Output: r.return_id, r.status, r.warehouse_id
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=17) (actual time=0.005..0.009 rows=14.00 loops=1)
+                          Output: r.return_id, r.status, r.warehouse_id
+                          Buffers: shared hit=1
+Planning Time: 0.194 ms
+Execution Time: 0.121 ms

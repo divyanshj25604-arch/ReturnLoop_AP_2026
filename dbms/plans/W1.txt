@@ -1,0 +1,22 @@
+================================================================================
+Query W1 [WRITE]: Insert a new product into master catalog
+Original ID: D.1
+================================================================================
+SQL Statement:
+INSERT INTO products (sku, brand, model_name, category, retail_price)
+VALUES ('SKU-TEST-PLAN-001', 'Logitech', 'MX Master 3S Wireless Mouse', 'Peripherals', 8995.00)
+RETURNING product_id, sku, model_name, retail_price;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Insert on public.products  (cost=0.00..0.02 rows=1 width=800) (actual time=0.161..0.162 rows=1.00 loops=1)
+  Output: products.product_id, products.sku, products.model_name, products.retail_price
+  Buffers: shared hit=19 dirtied=4
+  ->  Result  (cost=0.00..0.02 rows=1 width=800) (actual time=0.069..0.069 rows=1.00 loops=1)
+        Output: nextval('products_product_id_seq'::regclass), 'SKU-TEST-PLAN-001'::character varying(50), 'Logitech'::character varying(100), 'MX Master 3S Wireless Mouse'::character varying(150), 'Peripherals'::character varying(50), 8995.00::numeric(10,2), CURRENT_TIMESTAMP
+        Buffers: shared hit=15 dirtied=1
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.032 ms
+Execution Time: 0.178 ms

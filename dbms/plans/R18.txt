@@ -1,0 +1,19 @@
+================================================================================
+Query R18 [READ]: Authenticate operator by email (Auth Login query)
+Original ID: APP.1
+================================================================================
+SQL Statement:
+SELECT operator_id, employee_code, full_name, email, password_hash, app_role, warehouse_id, is_active
+FROM operators
+WHERE LOWER(email) = LOWER('rajesh.sharma@returnloop.internal');
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Seq Scan on public.operators  (cost=0.00..10.90 rows=1 width=1117) (actual time=0.017..0.019 rows=1.00 loops=1)
+  Output: operator_id, employee_code, full_name, email, password_hash, app_role, warehouse_id, is_active
+  Filter: (lower((operators.email)::text) = 'rajesh.sharma@returnloop.internal'::text)
+  Rows Removed by Filter: 4
+  Buffers: shared hit=1
+Planning Time: 0.082 ms
+Execution Time: 0.027 ms

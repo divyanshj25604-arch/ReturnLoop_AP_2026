@@ -1,0 +1,10 @@
+Update on public.disposition_decisions  (cost=0.00..1.11 rows=1 width=109) (actual time=0.087..0.088 rows=1.00 loops=1)
+  Output: decision_id, return_id, recommended_disposition, final_disposition, is_override
+  Buffers: shared hit=8
+  ->  Seq Scan on public.disposition_decisions  (cost=0.00..1.11 rows=1 width=109) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Output: 'Donate'::character varying(20), 1, true, 'Manager authorized corporate donation to local training center.'::text, CURRENT_TIMESTAMP, ctid
+        Filter: (disposition_decisions.decision_id = 1)
+        Rows Removed by Filter: 8
+        Buffers: shared hit=1
+Planning Time: 0.032 ms
+Execution Time: 0.107 ms

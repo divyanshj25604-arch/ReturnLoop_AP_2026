@@ -1,0 +1,24 @@
+================================================================================
+Query W7 [WRITE]: Update disposition outcome execution partner & notes
+Original ID: E.3
+================================================================================
+SQL Statement:
+UPDATE decision_outcomes
+SET execution_partner = 'Cashify Certified Platinum Hub',
+    outcome_notes = 'Batch inspection approved with bonus recovery rebate.'
+WHERE outcome_id = 1
+RETURNING outcome_id, execution_partner, outcome_notes;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Update on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=356) (actual time=0.038..0.039 rows=1.00 loops=1)
+  Output: outcome_id, execution_partner, outcome_notes
+  Buffers: shared hit=5 dirtied=1
+  ->  Index Scan using decision_outcomes_pkey on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=356) (actual time=0.009..0.009 rows=1.00 loops=1)
+        Output: 'Cashify Certified Platinum Hub'::character varying(150), 'Batch inspection approved with bonus recovery rebate.'::text, ctid
+        Index Cond: (decision_outcomes.outcome_id = 1)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.024 ms
+Execution Time: 0.053 ms

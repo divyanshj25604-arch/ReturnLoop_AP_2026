@@ -1,0 +1,29 @@
+Sort  (cost=2.68..2.69 rows=4 width=110) (actual time=0.084..0.085 rows=4.00 loops=1)
+  Output: i.condition_grade, (count(r.return_id)), (round(avg(i.repair_estimate), 2)), (min(i.repair_estimate)), (max(i.repair_estimate))
+  Sort Key: (count(r.return_id)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=5
+  ->  HashAggregate  (cost=2.58..2.64 rows=4 width=110) (actual time=0.066..0.072 rows=4.00 loops=1)
+        Output: i.condition_grade, count(r.return_id), round(avg(i.repair_estimate), 2), min(i.repair_estimate), max(i.repair_estimate)
+        Group Key: i.condition_grade
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=2
+        ->  Hash Join  (cost=1.32..2.45 rows=10 width=14) (actual time=0.023..0.030 rows=10.00 loops=1)
+              Output: i.condition_grade, r.return_id, i.repair_estimate
+              Inner Unique: true
+              Hash Cond: (i.return_id = r.return_id)
+              Buffers: shared hit=2
+              ->  Seq Scan on public.inspections i  (cost=0.00..1.10 rows=10 width=14) (actual time=0.006..0.008 rows=10.00 loops=1)
+                    Output: i.inspection_id, i.return_id, i.inspector_id, i.condition_grade, i.has_original_packaging, i.has_all_accessories, i.functional_status, i.repair_estimate, i.diagnostic_notes, i.inspected_at
+                    Buffers: shared hit=1
+              ->  Hash  (cost=1.14..1.14 rows=14 width=4) (actual time=0.012..0.012 rows=14.00 loops=1)
+                    Output: r.return_id
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=4) (actual time=0.003..0.006 rows=14.00 loops=1)
+                          Output: r.return_id
+                          Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=34
+Planning Time: 0.255 ms
+Execution Time: 0.149 ms

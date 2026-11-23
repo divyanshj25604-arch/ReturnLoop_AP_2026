@@ -1,0 +1,71 @@
+================================================================================
+Query R11 [READ]: Join Decisions with actual executed outcomes
+Original ID: B.6
+================================================================================
+SQL Statement:
+SELECT
+    dd.decision_id,
+    r.return_tracking_number,
+    p.model_name,
+    dd.final_disposition,
+    doc.disposition_executed,
+    doc.actual_revenue,
+    doc.actual_cost,
+    doc.actual_net_recovery,
+    doc.execution_partner,
+    doc.completion_date
+FROM disposition_decisions dd
+JOIN returns r ON dd.return_id = r.return_id
+JOIN products p ON r.product_id = p.product_id
+JOIN decision_outcomes doc ON dd.decision_id = doc.decision_id
+ORDER BY doc.actual_net_recovery DESC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=32.09..32.49 rows=160 width=773) (actual time=0.038..0.039 rows=6.00 loops=1)
+  Output: dd.decision_id, r.return_tracking_number, p.model_name, dd.final_disposition, doc.disposition_executed, doc.actual_revenue, doc.actual_cost, doc.actual_net_recovery, doc.execution_partner, doc.completion_date
+  Sort Key: doc.actual_net_recovery DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=13.94..26.23 rows=160 width=773) (actual time=0.032..0.035 rows=6.00 loops=1)
+        Output: dd.decision_id, r.return_tracking_number, p.model_name, dd.final_disposition, doc.disposition_executed, doc.actual_revenue, doc.actual_cost, doc.actual_net_recovery, doc.execution_partner, doc.completion_date
+        Hash Cond: (doc.decision_id = dd.decision_id)
+        Buffers: shared hit=4
+        ->  Seq Scan on public.decision_outcomes doc  (cost=0.00..11.60 rows=160 width=432) (actual time=0.003..0.004 rows=6.00 loops=1)
+              Output: doc.outcome_id, doc.decision_id, doc.disposition_executed, doc.actual_revenue, doc.actual_cost, doc.actual_net_recovery, doc.execution_partner, doc.completion_date, doc.outcome_notes, doc.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=13.83..13.83 rows=9 width=345) (actual time=0.027..0.028 rows=9.00 loops=1)
+              Output: dd.decision_id, dd.final_disposition, r.return_tracking_number, p.model_name
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=3
+              ->  Hash Join  (cost=2.50..13.83 rows=9 width=345) (actual time=0.016..0.026 rows=9.00 loops=1)
+                    Output: dd.decision_id, dd.final_disposition, r.return_tracking_number, p.model_name
+                    Hash Cond: (p.product_id = r.product_id)
+                    Buffers: shared hit=3
+                    ->  Seq Scan on public.products p  (cost=0.00..10.90 rows=90 width=322) (actual time=0.002..0.009 rows=10.00 loops=1)
+                          Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+                          Buffers: shared hit=1
+                    ->  Hash  (cost=2.39..2.39 rows=9 width=31) (actual time=0.013..0.013 rows=9.00 loops=1)
+                          Output: dd.decision_id, dd.final_disposition, r.return_tracking_number, r.product_id
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=2
+                          ->  Hash Join  (cost=1.20..2.39 rows=9 width=31) (actual time=0.008..0.011 rows=9.00 loops=1)
+                                Output: dd.decision_id, dd.final_disposition, r.return_tracking_number, r.product_id
+                                Inner Unique: true
+                                Hash Cond: (r.return_id = dd.return_id)
+                                Buffers: shared hit=2
+                                ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=22) (actual time=0.001..0.002 rows=14.00 loops=1)
+                                      Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=1.09..1.09 rows=9 width=17) (actual time=0.005..0.006 rows=9.00 loops=1)
+                                      Output: dd.decision_id, dd.final_disposition, dd.return_id
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=1
+                                      ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.09 rows=9 width=17) (actual time=0.003..0.004 rows=9.00 loops=1)
+                                            Output: dd.decision_id, dd.final_disposition, dd.return_id
+                                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.130 ms
+Execution Time: 0.051 ms

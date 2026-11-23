@@ -1,0 +1,59 @@
+================================================================================
+Query R10 [READ]: Join Decisions with Decision Alternatives (all 6 pathways)
+Original ID: B.5
+================================================================================
+SQL Statement:
+SELECT
+    dd.decision_id,
+    r.return_tracking_number,
+    dd.final_disposition,
+    da.disposition_type,
+    da.estimated_revenue,
+    da.estimated_cost,
+    da.net_expected_recovery,
+    da.feasibility_score,
+    da.rank_order,
+    da.is_recommended
+FROM disposition_decisions dd
+JOIN returns r ON dd.return_id = r.return_id
+JOIN decision_alternatives da ON dd.decision_id = da.decision_id
+WHERE dd.decision_id = 1
+ORDER BY da.rank_order ASC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=4.13..4.14 rows=6 width=60) (actual time=0.038..0.040 rows=6.00 loops=1)
+  Output: dd.decision_id, r.return_tracking_number, dd.final_disposition, da.disposition_type, da.estimated_revenue, da.estimated_cost, da.net_expected_recovery, da.feasibility_score, da.rank_order, da.is_recommended
+  Sort Key: da.rank_order
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=3
+  ->  Nested Loop  (cost=1.12..4.05 rows=6 width=60) (actual time=0.026..0.035 rows=6.00 loops=1)
+        Output: dd.decision_id, r.return_tracking_number, dd.final_disposition, da.disposition_type, da.estimated_revenue, da.estimated_cost, da.net_expected_recovery, da.feasibility_score, da.rank_order, da.is_recommended
+        Buffers: shared hit=3
+        ->  Hash Join  (cost=1.12..2.31 rows=1 width=27) (actual time=0.015..0.018 rows=1.00 loops=1)
+              Output: dd.decision_id, dd.final_disposition, r.return_tracking_number
+              Inner Unique: true
+              Hash Cond: (r.return_id = dd.return_id)
+              Buffers: shared hit=2
+              ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=18) (actual time=0.004..0.005 rows=14.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                    Buffers: shared hit=1
+              ->  Hash  (cost=1.11..1.11 rows=1 width=17) (actual time=0.008..0.008 rows=1.00 loops=1)
+                    Output: dd.decision_id, dd.final_disposition, dd.return_id
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.11 rows=1 width=17) (actual time=0.005..0.006 rows=1.00 loops=1)
+                          Output: dd.decision_id, dd.final_disposition, dd.return_id
+                          Filter: (dd.decision_id = 1)
+                          Rows Removed by Filter: 8
+                          Buffers: shared hit=1
+        ->  Seq Scan on public.decision_alternatives da  (cost=0.00..1.68 rows=6 width=37) (actual time=0.009..0.014 rows=6.00 loops=1)
+              Output: da.alternative_id, da.decision_id, da.disposition_type, da.estimated_revenue, da.estimated_cost, da.net_expected_recovery, da.feasibility_score, da.rank_order, da.is_recommended, da.rationale, da.created_at
+              Filter: (da.decision_id = 1)
+              Rows Removed by Filter: 48
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=91
+Planning Time: 0.748 ms
+Execution Time: 0.057 ms

@@ -1,0 +1,10 @@
+Update on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=38) (actual time=0.063..0.063 rows=1.00 loops=1)
+  Output: outcome_id, actual_revenue, actual_cost, actual_net_recovery
+  Buffers: shared hit=8
+  ->  Index Scan using decision_outcomes_pkey on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=38) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Output: 65000.00::numeric(10,2), 3500.00::numeric(10,2), ctid
+        Index Cond: (decision_outcomes.outcome_id = 1)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.035 ms
+Execution Time: 0.073 ms

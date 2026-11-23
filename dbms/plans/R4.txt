@@ -1,0 +1,59 @@
+================================================================================
+Query R4 [READ]: Retrieve pending disposition decisions
+Original ID: A.4
+================================================================================
+SQL Statement:
+SELECT
+    r.return_id,
+    r.return_tracking_number,
+    p.model_name,
+    r.status,
+    r.return_date,
+    r.return_reason
+FROM returns r
+JOIN products p ON r.product_id = p.product_id
+LEFT JOIN disposition_decisions dd ON r.return_id = dd.return_id
+WHERE dd.decision_id IS NULL
+  AND r.status != 'CANCELLED'
+ORDER BY r.return_date ASC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=5.74..5.74 rows=1 width=380) (actual time=0.024..0.024 rows=4.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, p.model_name, r.status, r.return_date, r.return_reason
+  Sort Key: r.return_date
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=10
+  ->  Nested Loop  (cost=1.35..5.73 rows=1 width=380) (actual time=0.017..0.022 rows=4.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, p.model_name, r.status, r.return_date, r.return_reason
+        Inner Unique: true
+        Buffers: shared hit=10
+        ->  Hash Left Join  (cost=1.20..2.42 rows=1 width=66) (actual time=0.013..0.014 rows=4.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.status, r.return_date, r.return_reason, r.product_id
+              Inner Unique: true
+              Hash Cond: (r.return_id = dd.return_id)
+              Filter: (dd.decision_id IS NULL)
+              Rows Removed by Filter: 9
+              Buffers: shared hit=2
+              ->  Seq Scan on public.returns r  (cost=0.00..1.18 rows=13 width=66) (actual time=0.003..0.005 rows=13.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                    Filter: ((r.status)::text <> 'CANCELLED'::text)
+                    Rows Removed by Filter: 1
+                    Buffers: shared hit=1
+              ->  Hash  (cost=1.09..1.09 rows=9 width=8) (actual time=0.005..0.005 rows=9.00 loops=1)
+                    Output: dd.decision_id, dd.return_id
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.09 rows=9 width=8) (actual time=0.002..0.003 rows=9.00 loops=1)
+                          Output: dd.decision_id, dd.return_id
+                          Buffers: shared hit=1
+        ->  Index Scan using products_pkey on public.products p  (cost=0.14..3.24 rows=1 width=322) (actual time=0.001..0.001 rows=1.00 loops=4)
+              Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+              Index Cond: (p.product_id = r.product_id)
+              Index Searches: 4
+              Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=80 dirtied=1
+Planning Time: 0.501 ms
+Execution Time: 0.036 ms

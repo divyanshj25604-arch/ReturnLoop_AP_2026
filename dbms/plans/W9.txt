@@ -1,0 +1,22 @@
+================================================================================
+Query W9 [WRITE]: Controlled deletion of unselected candidate alternative
+Original ID: F.1
+================================================================================
+SQL Statement:
+DELETE FROM decision_alternatives
+WHERE decision_id = 1 AND rank_order = 6
+RETURNING alternative_id, decision_id, disposition_type, rank_order;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Delete on public.decision_alternatives  (cost=0.00..1.81 rows=1 width=6) (actual time=0.104..0.110 rows=1.00 loops=1)
+  Output: alternative_id, decision_id, disposition_type, rank_order
+  Buffers: shared hit=4 dirtied=2
+  ->  Seq Scan on public.decision_alternatives  (cost=0.00..1.81 rows=1 width=6) (actual time=0.004..0.009 rows=1.00 loops=1)
+        Output: ctid
+        Filter: ((decision_alternatives.decision_id = 1) AND (decision_alternatives.rank_order = 6))
+        Rows Removed by Filter: 53
+        Buffers: shared hit=1
+Planning Time: 0.032 ms
+Execution Time: 0.124 ms

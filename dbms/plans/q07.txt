@@ -1,0 +1,46 @@
+Sort  (cost=25.28..25.31 rows=10 width=594) (actual time=0.049..0.050 rows=10.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, p.model_name, i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, o.full_name, i.inspected_at
+  Sort Key: i.inspected_at DESC
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=7
+  ->  Hash Join  (cost=13.78..25.11 rows=10 width=594) (actual time=0.036..0.040 rows=10.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, p.model_name, i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, o.full_name, i.inspected_at
+        Hash Cond: (p.product_id = r.product_id)
+        Buffers: shared hit=4
+        ->  Seq Scan on public.products p  (cost=0.00..10.90 rows=90 width=322) (actual time=0.004..0.004 rows=10.00 loops=1)
+              Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=13.65..13.65 rows=10 width=280) (actual time=0.030..0.031 rows=10.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.product_id, i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, i.inspected_at, o.full_name
+              Buckets: 1024  Batches: 1  Memory Usage: 10kB
+              Buffers: shared hit=3
+              ->  Hash Join  (cost=2.54..13.65 rows=10 width=280) (actual time=0.024..0.028 rows=10.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, i.inspected_at, o.full_name
+                    Inner Unique: true
+                    Hash Cond: (i.return_id = r.return_id)
+                    Buffers: shared hit=3
+                    ->  Hash Join  (cost=1.23..12.30 rows=10 width=262) (actual time=0.015..0.017 rows=10.00 loops=1)
+                          Output: i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, i.inspected_at, i.return_id, o.full_name
+                          Hash Cond: (o.operator_id = i.inspector_id)
+                          Buffers: shared hit=2
+                          ->  Seq Scan on public.operators o  (cost=0.00..10.60 rows=60 width=222) (actual time=0.005..0.005 rows=5.00 loops=1)
+                                Output: o.operator_id, o.employee_code, o.full_name, o.email, o.password_hash, o.app_role, o.role, o.warehouse_id, o.is_active, o.created_at
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=1.10..1.10 rows=10 width=48) (actual time=0.007..0.007 rows=10.00 loops=1)
+                                Output: i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, i.inspected_at, i.return_id, i.inspector_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on public.inspections i  (cost=0.00..1.10 rows=10 width=48) (actual time=0.003..0.004 rows=10.00 loops=1)
+                                      Output: i.inspection_id, i.condition_grade, i.functional_status, i.has_original_packaging, i.has_all_accessories, i.repair_estimate, i.inspected_at, i.return_id, i.inspector_id
+                                      Buffers: shared hit=1
+                    ->  Hash  (cost=1.14..1.14 rows=14 width=22) (actual time=0.007..0.007 rows=14.00 loops=1)
+                          Output: r.return_id, r.return_tracking_number, r.product_id
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=22) (actual time=0.003..0.005 rows=14.00 loops=1)
+                                Output: r.return_id, r.return_tracking_number, r.product_id
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=109
+Planning Time: 0.931 ms
+Execution Time: 0.083 ms

@@ -1,0 +1,17 @@
+Sort  (cost=1.38..1.39 rows=5 width=88) (actual time=0.025..0.025 rows=5.00 loops=1)
+  Output: recommended_disposition, (count(decision_id)), (sum(CASE WHEN is_override THEN 1 ELSE 0 END)), (round((((sum(CASE WHEN is_override THEN 1 ELSE 0 END))::numeric / (count(decision_id))::numeric) * '100'::numeric), 2)), (round(avg(confidence_score), 3))
+  Sort Key: (count(dd.decision_id)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1
+  ->  HashAggregate  (cost=1.18..1.32 rows=5 width=88) (actual time=0.018..0.022 rows=5.00 loops=1)
+        Output: recommended_disposition, count(decision_id), sum(CASE WHEN is_override THEN 1 ELSE 0 END), round((((sum(CASE WHEN is_override THEN 1 ELSE 0 END))::numeric / (count(decision_id))::numeric) * '100'::numeric), 2), round(avg(confidence_score), 3)
+        Group Key: dd.recommended_disposition
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.09 rows=9 width=18) (actual time=0.004..0.005 rows=9.00 loops=1)
+              Output: decision_id, return_id, recommended_disposition, final_disposition, decided_by_operator_id, is_override, override_reason, confidence_score, decided_at
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.062 ms
+Execution Time: 0.042 ms

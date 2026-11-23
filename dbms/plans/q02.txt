@@ -1,0 +1,40 @@
+Sort  (cost=9.02..9.03 rows=2 width=362) (actual time=0.063..0.064 rows=2.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, p.model_name, i.condition_grade, i.functional_status, i.repair_estimate
+  Sort Key: i.repair_estimate DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9
+  ->  Nested Loop  (cost=1.30..9.01 rows=2 width=362) (actual time=0.037..0.043 rows=2.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, p.model_name, i.condition_grade, i.functional_status, i.repair_estimate
+        Inner Unique: true
+        Buffers: shared hit=6
+        ->  Hash Join  (cost=1.15..2.36 rows=2 width=48) (actual time=0.025..0.028 rows=2.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.product_id, i.condition_grade, i.functional_status, i.repair_estimate
+              Hash Cond: (r.return_id = i.return_id)
+              Buffers: shared hit=2
+              ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=22) (actual time=0.003..0.004 rows=14.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                    Buffers: shared hit=1
+              ->  Hash  (cost=1.12..1.12 rows=2 width=30) (actual time=0.015..0.016 rows=2.00 loops=1)
+                    Output: i.condition_grade, i.functional_status, i.repair_estimate, i.return_id
+                    Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                    Buffers: shared hit=1
+                    ->  Seq Scan on public.inspections i  (cost=0.00..1.12 rows=2 width=30) (actual time=0.009..0.012 rows=2.00 loops=1)
+                          Output: i.condition_grade, i.functional_status, i.repair_estimate, i.return_id
+                          Filter: ((i.condition_grade)::text = 'Damaged'::text)
+                          Rows Removed by Filter: 8
+                          Buffers: shared hit=1
+        ->  Memoize  (cost=0.15..3.31 rows=1 width=322) (actual time=0.006..0.006 rows=1.00 loops=2)
+              Output: p.model_name, p.product_id
+              Cache Key: r.product_id
+              Cache Mode: logical
+              Hits: 0  Misses: 2  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+              Buffers: shared hit=4
+              ->  Index Scan using products_pkey on public.products p  (cost=0.14..3.30 rows=1 width=322) (actual time=0.004..0.004 rows=1.00 loops=2)
+                    Output: p.model_name, p.product_id
+                    Index Cond: (p.product_id = r.product_id)
+                    Index Searches: 2
+                    Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=80
+Planning Time: 0.607 ms
+Execution Time: 0.096 ms

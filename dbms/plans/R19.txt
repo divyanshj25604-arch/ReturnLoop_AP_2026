@@ -1,0 +1,26 @@
+================================================================================
+Query R19 [READ]: Executive Dashboard summary metrics (status counts, revenue, recovery rate)
+Original ID: APP.2
+================================================================================
+SQL Statement:
+SELECT
+  COUNT(*)::int AS total_returns,
+  COUNT(*) FILTER (WHERE status = 'RECEIVED')::int AS received,
+  COUNT(*) FILTER (WHERE status = 'UNDER_INSPECTION')::int AS under_inspection,
+  COUNT(*) FILTER (WHERE status = 'EVALUATED')::int AS evaluated,
+  COUNT(*) FILTER (WHERE status = 'DECIDED')::int AS decided,
+  COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed,
+  COUNT(*) FILTER (WHERE status = 'CANCELLED')::int AS cancelled
+FROM returns;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Aggregate  (cost=1.59..1.62 rows=1 width=28) (actual time=0.024..0.024 rows=1.00 loops=1)
+  Output: (count(*))::integer, (count(*) FILTER (WHERE ((status)::text = 'RECEIVED'::text)))::integer, (count(*) FILTER (WHERE ((status)::text = 'UNDER_INSPECTION'::text)))::integer, (count(*) FILTER (WHERE ((status)::text = 'EVALUATED'::text)))::integer, (count(*) FILTER (WHERE ((status)::text = 'DECIDED'::text)))::integer, (count(*) FILTER (WHERE ((status)::text = 'COMPLETED'::text)))::integer, (count(*) FILTER (WHERE ((status)::text = 'CANCELLED'::text)))::integer
+  Buffers: shared hit=1
+  ->  Seq Scan on public.returns  (cost=0.00..1.14 rows=14 width=9) (actual time=0.005..0.006 rows=14.00 loops=1)
+        Output: return_id, return_tracking_number, product_id, warehouse_id, serial_number, return_reason, return_date, status, customer_comment, created_at
+        Buffers: shared hit=1
+Planning Time: 0.064 ms
+Execution Time: 0.048 ms

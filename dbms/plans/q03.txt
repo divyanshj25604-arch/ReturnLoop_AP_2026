@@ -1,0 +1,26 @@
+Sort  (cost=9.36..9.37 rows=1 width=425) (actual time=0.032..0.032 rows=4.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, w.warehouse_code, w.facility_name, w.city, r.return_date, r.status
+  Sort Key: r.return_date DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Hash Join  (cost=8.17..9.35 rows=1 width=425) (actual time=0.022..0.025 rows=4.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, w.warehouse_code, w.facility_name, w.city, r.return_date, r.status
+        Inner Unique: true
+        Hash Cond: (r.warehouse_id = w.warehouse_id)
+        Buffers: shared hit=3
+        ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=35) (actual time=0.003..0.004 rows=14.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=8.16..8.16 rows=1 width=398) (actual time=0.017..0.017 rows=1.00 loops=1)
+              Output: w.warehouse_code, w.facility_name, w.city, w.warehouse_id
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=2
+              ->  Index Scan using uq_warehouses_code on public.warehouses w  (cost=0.14..8.16 rows=1 width=398) (actual time=0.014..0.014 rows=1.00 loops=1)
+                    Output: w.warehouse_code, w.facility_name, w.city, w.warehouse_id
+                    Index Cond: ((w.warehouse_code)::text = 'WH-DEL-01'::text)
+                    Index Searches: 1
+                    Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=64
+Planning Time: 0.279 ms
+Execution Time: 0.045 ms

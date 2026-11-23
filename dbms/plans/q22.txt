@@ -1,0 +1,10 @@
+Insert on public.inspections  (cost=0.00..0.02 rows=1 width=246) (actual time=0.188..0.189 rows=1.00 loops=1)
+  Output: inspections.inspection_id, inspections.condition_grade, inspections.functional_status, inspections.repair_estimate
+  Buffers: shared hit=23 dirtied=5
+  ->  Result  (cost=0.00..0.02 rows=1 width=246) (actual time=0.025..0.025 rows=1.00 loops=1)
+        Output: nextval('inspections_inspection_id_seq'::regclass), 12, 1, 'Good'::character varying(20), true, true, 'Minor Glitch'::character varying(50), 1200.00::numeric(10,2), 'Firmware recalibration needed; cosmetic casing intact.'::text, CURRENT_TIMESTAMP
+        Buffers: shared hit=15 dirtied=1
+Planning Time: 0.008 ms
+Trigger RI_ConstraintTrigger_c_17012 for constraint fk_inspections_return: time=0.090 calls=1
+Trigger RI_ConstraintTrigger_c_17017 for constraint fk_inspections_inspector: time=0.070 calls=1
+Execution Time: 0.356 ms

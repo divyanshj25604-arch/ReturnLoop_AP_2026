@@ -1,0 +1,44 @@
+================================================================================
+Query R8 [READ]: Join Returns with Regional Warehouses
+Original ID: B.3
+================================================================================
+SQL Statement:
+SELECT
+    r.return_id,
+    r.return_tracking_number,
+    r.return_date,
+    r.status,
+    w.warehouse_code,
+    w.facility_name,
+    w.city,
+    w.state
+FROM returns r
+JOIN warehouses w ON r.warehouse_id = w.warehouse_id
+ORDER BY w.warehouse_code ASC, r.return_date DESC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=14.17..14.21 rows=14 width=543) (actual time=0.081..0.082 rows=14.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, r.return_date, r.status, w.warehouse_code, w.facility_name, w.city, w.state
+  Sort Key: w.warehouse_code, r.return_date DESC
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=5
+  ->  Hash Join  (cost=1.32..13.90 rows=14 width=543) (actual time=0.031..0.035 rows=14.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, r.return_date, r.status, w.warehouse_code, w.facility_name, w.city, w.state
+        Hash Cond: (w.warehouse_id = r.warehouse_id)
+        Buffers: shared hit=2
+        ->  Seq Scan on public.warehouses w  (cost=0.00..11.40 rows=140 width=516) (actual time=0.015..0.016 rows=4.00 loops=1)
+              Output: w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.state, w.capacity, w.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=1.14..1.14 rows=14 width=35) (actual time=0.012..0.012 rows=14.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.return_date, r.status, r.warehouse_id
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=35) (actual time=0.003..0.006 rows=14.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.return_date, r.status, r.warehouse_id
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=5
+Planning Time: 0.159 ms
+Execution Time: 0.099 ms

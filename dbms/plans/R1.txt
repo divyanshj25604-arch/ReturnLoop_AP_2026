@@ -1,0 +1,45 @@
+================================================================================
+Query R1 [READ]: Retrieve all returned products with catalog specifications
+Original ID: A.1
+================================================================================
+SQL Statement:
+SELECT
+    r.return_id,
+    r.return_tracking_number,
+    r.product_id,
+    p.sku,
+    p.brand,
+    p.model_name,
+    p.category,
+    r.return_date,
+    r.status
+FROM returns r
+JOIN products p ON r.product_id = p.product_id
+ORDER BY r.return_id ASC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=13.07..13.11 rows=14 width=807) (actual time=0.065..0.066 rows=14.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, r.product_id, p.sku, p.brand, p.model_name, p.category, r.return_date, r.status
+  Sort Key: r.return_id
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=5
+  ->  Hash Join  (cost=1.32..12.80 rows=14 width=807) (actual time=0.037..0.043 rows=14.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, r.product_id, p.sku, p.brand, p.model_name, p.category, r.return_date, r.status
+        Hash Cond: (p.product_id = r.product_id)
+        Buffers: shared hit=2
+        ->  Seq Scan on public.products p  (cost=0.00..10.90 rows=90 width=776) (actual time=0.006..0.007 rows=10.00 loops=1)
+              Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=1.14..1.14 rows=14 width=35) (actual time=0.022..0.022 rows=14.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.product_id, r.return_date, r.status
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=35) (actual time=0.010..0.013 rows=14.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, r.return_date, r.status
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=208
+Planning Time: 1.393 ms
+Execution Time: 0.138 ms

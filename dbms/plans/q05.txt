@@ -1,0 +1,48 @@
+Sort  (cost=28.19..28.37 rows=71 width=432) (actual time=0.086..0.087 rows=6.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, p.model_name, r.status, dd.final_disposition, doc.disposition_executed, doc.actual_net_recovery, doc.completion_date
+  Sort Key: doc.completion_date DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=13.77..26.01 rows=71 width=432) (actual time=0.078..0.082 rows=6.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, p.model_name, r.status, dd.final_disposition, doc.disposition_executed, doc.actual_net_recovery, doc.completion_date
+        Hash Cond: (doc.decision_id = dd.decision_id)
+        Buffers: shared hit=4
+        ->  Seq Scan on public.decision_outcomes doc  (cost=0.00..11.60 rows=160 width=82) (actual time=0.011..0.011 rows=6.00 loops=1)
+              Output: doc.outcome_id, doc.decision_id, doc.disposition_executed, doc.actual_revenue, doc.actual_cost, doc.actual_net_recovery, doc.execution_partner, doc.completion_date, doc.outcome_notes, doc.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=13.72..13.72 rows=4 width=358) (actual time=0.064..0.065 rows=6.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.status, p.model_name, dd.final_disposition, dd.decision_id
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=3
+              ->  Hash Join  (cost=2.44..13.72 rows=4 width=358) (actual time=0.045..0.060 rows=6.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.status, p.model_name, dd.final_disposition, dd.decision_id
+                    Hash Cond: (p.product_id = r.product_id)
+                    Buffers: shared hit=3
+                    ->  Seq Scan on public.products p  (cost=0.00..10.90 rows=90 width=322) (actual time=0.003..0.004 rows=10.00 loops=1)
+                          Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+                          Buffers: shared hit=1
+                    ->  Hash  (cost=2.39..2.39 rows=4 width=44) (actual time=0.035..0.036 rows=6.00 loops=1)
+                          Output: r.return_id, r.return_tracking_number, r.status, r.product_id, dd.final_disposition, dd.decision_id
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=2
+                          ->  Hash Join  (cost=1.20..2.39 rows=4 width=44) (actual time=0.026..0.031 rows=6.00 loops=1)
+                                Output: r.return_id, r.return_tracking_number, r.status, r.product_id, dd.final_disposition, dd.decision_id
+                                Inner Unique: true
+                                Hash Cond: (r.return_id = dd.return_id)
+                                Buffers: shared hit=2
+                                ->  Seq Scan on public.returns r  (cost=0.00..1.18 rows=6 width=31) (actual time=0.004..0.006 rows=6.00 loops=1)
+                                      Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                                      Filter: ((r.status)::text = 'COMPLETED'::text)
+                                      Rows Removed by Filter: 8
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=1.09..1.09 rows=9 width=17) (actual time=0.013..0.013 rows=9.00 loops=1)
+                                      Output: dd.final_disposition, dd.return_id, dd.decision_id
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=1
+                                      ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.09 rows=9 width=17) (actual time=0.005..0.007 rows=9.00 loops=1)
+                                            Output: dd.final_disposition, dd.return_id, dd.decision_id
+                                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=75
+Planning Time: 0.745 ms
+Execution Time: 0.124 ms

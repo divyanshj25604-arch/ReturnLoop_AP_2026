@@ -1,25 +1,17 @@
 -- ============================================================================
--- Return Loop — Production Database Queries Suite
+-- Return Loop — Production Database Queries Suite (CP3 / CP4)
 -- Project: Return Loop (Decision Intelligence Platform for Returned Electronics)
--- Role: Database Queries & Testing / ER Documentation (Devanshi Kumari)
--- Assignment: AP CP1
--- Target Engine: PostgreSQL (v12+)
--- Standards: Executable against the relational schema (dbms/03_schema.sql)
--- Classification: Each query is explicitly tagged with -- READ or -- WRITE
--- ============================================================================
-
--- ============================================================================
--- CATEGORY A: SELECT QUERIES
--- Fundamental data retrieval across return intake, conditions, and workflows.
+-- Component: dbms/04_queries.sql
+-- Role: Database Architecture & Queries (Shreyansh Rathaur / Devanshi Kumari)
+-- Standard: Compliant with AP Checkpoint 3 and Checkpoint 4 Specifications
+-- Engine: PostgreSQL (v12+)
+-- Standards: Annotated with -- READ or -- WRITE and Query IDs (R1, R2, ... W1, W2, ...)
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- Query A.1: Retrieve all returned products
--- Type: -- READ
--- Business Purpose: Lists all returned units with associated catalog details,
--- intake date, and current reverse logistics workflow status.
+-- Query R1 [READ]: Retrieve all returned products with catalog specifications
+-- (Original Reference: Query A.1)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -35,12 +27,9 @@ JOIN products p ON r.product_id = p.product_id
 ORDER BY r.return_id ASC;
 
 -- ----------------------------------------------------------------------------
--- Query A.2: Retrieve returns by condition
--- Type: -- READ
--- Business Purpose: Filters returns flagged with severe physical or hardware damage
--- to prioritize salvage, repair evaluation, or scrap processing.
+-- Query R2 [READ]: Retrieve returns by condition (Damaged items for salvage)
+-- (Original Reference: Query A.2)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -55,12 +44,9 @@ WHERE i.condition_grade = 'Damaged'
 ORDER BY i.repair_estimate DESC;
 
 -- ----------------------------------------------------------------------------
--- Query A.3: Retrieve returns by warehouse
--- Type: -- READ
--- Business Purpose: Monitors intake queue and return volume for a specific regional
--- fulfillment facility (e.g., North Regional Hub: WH-DEL-01).
+-- Query R3 [READ]: Retrieve returns by regional warehouse (WH-DEL-01)
+-- (Original Reference: Query A.3)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -75,12 +61,9 @@ WHERE w.warehouse_code = 'WH-DEL-01'
 ORDER BY r.return_date DESC;
 
 -- ----------------------------------------------------------------------------
--- Query A.4: Retrieve pending disposition decisions
--- Type: -- READ
--- Business Purpose: Identifies returned inventory items actively undergoing intake
--- or inspection that do not yet have an authorized disposition decision.
+-- Query R4 [READ]: Retrieve pending disposition decisions
+-- (Original Reference: Query A.4)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -96,12 +79,9 @@ WHERE dd.decision_id IS NULL
 ORDER BY r.return_date ASC;
 
 -- ----------------------------------------------------------------------------
--- Query A.5: Retrieve completed returns
--- Type: -- READ
--- Business Purpose: Audits finalized returns that have completed physical execution,
--- displaying final disposition, realized net margin, and completion date.
+-- Query R5 [READ]: Retrieve completed returns with realized financial recovery
+-- (Original Reference: Query A.5)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -118,88 +98,66 @@ JOIN decision_outcomes doc ON dd.decision_id = doc.decision_id
 WHERE r.status = 'COMPLETED'
 ORDER BY doc.completion_date DESC;
 
-
--- ============================================================================
--- CATEGORY B: JOIN QUERIES
--- Multi-table relational queries bridging master catalog, triage, and outcomes.
--- ============================================================================
-
 -- ----------------------------------------------------------------------------
--- Query B.1: Join Returns with Products
--- Type: -- READ
--- Relational Context: 1:N relationship (products -> returns).
--- Business Purpose: Correlates incoming return units with primary catalog specs,
--- category taxonomy, and original retail purchase price.
+-- Query R6 [READ]: Join Returns with Products catalog specifications
+-- (Original Reference: Query B.1)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
     r.serial_number,
+    r.status,
     p.sku,
     p.brand,
     p.model_name,
     p.category,
-    p.retail_price,
-    r.return_date,
-    r.status
+    p.retail_price
 FROM returns r
-INNER JOIN products p ON r.product_id = p.product_id
-ORDER BY r.return_date DESC;
+JOIN products p ON r.product_id = p.product_id
+ORDER BY r.return_id ASC;
 
 -- ----------------------------------------------------------------------------
--- Query B.2: Join Returns with Inspections
--- Type: -- READ
--- Relational Context: 1:1 relationship (returns -> inspections).
--- Business Purpose: Combines customer return metadata with physical condition
--- triage, accessory completeness, and technician diagnostic findings.
+-- Query R7 [READ]: Join Returns with Technical Inspections checklist
+-- (Original Reference: Query B.2)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
-    r.return_reason,
+    p.model_name,
     i.inspection_id,
     i.condition_grade,
+    i.functional_status,
     i.has_original_packaging,
     i.has_all_accessories,
-    i.functional_status,
     i.repair_estimate,
-    i.diagnostic_notes,
-    i.inspected_at
+    o.full_name AS inspector_name
 FROM returns r
-INNER JOIN inspections i ON r.return_id = i.return_id
+JOIN products p ON r.product_id = p.product_id
+JOIN inspections i ON r.return_id = i.return_id
+JOIN operators o ON i.inspector_id = o.operator_id
 ORDER BY i.inspected_at DESC;
 
 -- ----------------------------------------------------------------------------
--- Query B.3: Join Returns with Warehouses
--- Type: -- READ
--- Relational Context: 1:N relationship (warehouses -> returns).
--- Business Purpose: Maps intake distribution against physical warehouse storage,
--- regional logistics nodes, and available square-footage capacity.
+-- Query R8 [READ]: Join Returns with Regional Warehouses
+-- (Original Reference: Query B.3)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
+    r.return_date,
     r.status,
     w.warehouse_code,
     w.facility_name,
     w.city,
-    w.state,
-    w.total_capacity_sqft
+    w.state
 FROM returns r
-INNER JOIN warehouses w ON r.warehouse_id = w.warehouse_id
+JOIN warehouses w ON r.warehouse_id = w.warehouse_id
 ORDER BY w.warehouse_code ASC, r.return_date DESC;
 
 -- ----------------------------------------------------------------------------
--- Query B.4: Join Returns with Disposition Decisions
--- Type: -- READ
--- Relational Context: 1:1 relationship (returns -> disposition_decisions).
--- Business Purpose: Evaluates algorithmic recommendations against finalized
--- disposition routes, identifying manual supervisor overrides and confidence scores.
+-- Query R9 [READ]: Join Returns with Disposition Decisions
+-- (Original Reference: Query B.4)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     r.return_id,
     r.return_tracking_number,
@@ -210,337 +168,264 @@ SELECT
     dd.is_override,
     dd.override_reason,
     dd.confidence_score,
-    dd.decided_at
+    o.full_name AS decided_by_operator
 FROM returns r
-INNER JOIN products p ON r.product_id = p.product_id
-INNER JOIN disposition_decisions dd ON r.return_id = dd.return_id
+JOIN products p ON r.product_id = p.product_id
+JOIN disposition_decisions dd ON r.return_id = dd.return_id
+JOIN operators o ON dd.decided_by_operator_id = o.operator_id
 ORDER BY dd.decided_at DESC;
 
 -- ----------------------------------------------------------------------------
--- Query B.5: Join Decisions with Decision Alternatives
--- Type: -- READ
--- Relational Context: 1:N relationship (disposition_decisions -> decision_alternatives).
--- Business Purpose: Compares all ranked disposition alternatives evaluated by the
--- decision engine, contrasting expected net recovery against feasibility scores.
+-- Query R10 [READ]: Join Decisions with Decision Alternatives (all 6 pathways)
+-- (Original Reference: Query B.5)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     dd.decision_id,
     r.return_tracking_number,
     dd.final_disposition,
-    da.alternative_id,
     da.disposition_type,
+    da.estimated_revenue,
+    da.estimated_cost,
+    da.net_expected_recovery,
+    da.feasibility_score,
     da.rank_order,
-    da.expected_revenue,
-    da.expected_cost,
-    da.expected_net_recovery,
-    da.feasibility_score
+    da.is_recommended
 FROM disposition_decisions dd
-INNER JOIN returns r ON dd.return_id = r.return_id
-INNER JOIN decision_alternatives da ON dd.decision_id = da.decision_id
-ORDER BY dd.decision_id ASC, da.rank_order ASC;
+JOIN returns r ON dd.return_id = r.return_id
+JOIN decision_alternatives da ON dd.decision_id = da.decision_id
+WHERE dd.decision_id = 1
+ORDER BY da.rank_order ASC;
 
 -- ----------------------------------------------------------------------------
--- Query B.6: Join Decisions with actual outcomes
--- Type: -- READ
--- Relational Context: 1:1 relationship (disposition_decisions -> decision_outcomes).
--- Business Purpose: Reconciles algorithmic financial projections with executed
--- settlement revenue, partner channel fees, and realized net recovery.
+-- Query R11 [READ]: Join Decisions with actual executed outcomes
+-- (Original Reference: Query B.6)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     dd.decision_id,
     r.return_tracking_number,
     p.model_name,
     dd.final_disposition,
-    doc.outcome_id,
     doc.disposition_executed,
-    doc.execution_partner,
     doc.actual_revenue,
     doc.actual_cost,
     doc.actual_net_recovery,
+    doc.execution_partner,
     doc.completion_date
 FROM disposition_decisions dd
-INNER JOIN returns r ON dd.return_id = r.return_id
-INNER JOIN products p ON r.product_id = p.product_id
-INNER JOIN decision_outcomes doc ON dd.decision_id = doc.decision_id
-ORDER BY doc.completion_date DESC;
-
-
--- ============================================================================
--- CATEGORY C: AGGREGATE QUERIES (GROUP BY, HAVING, STATISTICAL METRICS)
--- Analytics across reverse supply chain throughput, recovery, and reliability.
--- ============================================================================
+JOIN returns r ON dd.return_id = r.return_id
+JOIN products p ON r.product_id = p.product_id
+JOIN decision_outcomes doc ON dd.decision_id = doc.decision_id
+ORDER BY doc.actual_net_recovery DESC;
 
 -- ----------------------------------------------------------------------------
--- Query C.1: Count returns by condition
--- Type: -- READ
--- Business Purpose: Quantifies distribution of cosmetic and functional condition
--- grades across all processed items to gauge incoming stock quality.
+-- Query R12 [READ]: Count returns grouped by condition grade
+-- (Original Reference: Query C.1)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     i.condition_grade,
-    COUNT(i.inspection_id) AS total_inspections,
+    COUNT(r.return_id) AS total_returns,
     ROUND(AVG(i.repair_estimate), 2) AS avg_repair_estimate,
     MIN(i.repair_estimate) AS min_repair_estimate,
     MAX(i.repair_estimate) AS max_repair_estimate
 FROM inspections i
+JOIN returns r ON i.return_id = r.return_id
 GROUP BY i.condition_grade
-ORDER BY total_inspections DESC;
+ORDER BY total_returns DESC;
 
 -- ----------------------------------------------------------------------------
--- Query C.2: Count returns by disposition
--- Type: -- READ
--- Business Purpose: Analyzes distribution of final routing pathways (Resell,
--- Refurbish, Liquidate, Return to Vendor, Recycle).
+-- Query R13 [READ]: Count returns grouped by recommended disposition
+-- (Original Reference: Query C.2)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
-    dd.final_disposition,
+    dd.recommended_disposition,
     COUNT(dd.decision_id) AS total_decisions,
-    ROUND(AVG(dd.confidence_score), 4) AS avg_confidence,
-    SUM(CASE WHEN dd.is_override = TRUE THEN 1 ELSE 0 END) AS total_overrides
+    SUM(CASE WHEN dd.is_override = TRUE THEN 1 ELSE 0 END) AS total_overrides,
+    ROUND(
+        (SUM(CASE WHEN dd.is_override = TRUE THEN 1 ELSE 0 END)::NUMERIC / COUNT(dd.decision_id)) * 100,
+        2
+    ) AS override_rate_percent,
+    ROUND(AVG(dd.confidence_score), 3) AS avg_confidence_score
 FROM disposition_decisions dd
-GROUP BY dd.final_disposition
+GROUP BY dd.recommended_disposition
 ORDER BY total_decisions DESC;
 
 -- ----------------------------------------------------------------------------
--- Query C.3: Calculate average recovery
--- Type: -- READ
--- Business Purpose: Measures mean gross proceeds, costs, and net realized recovery
--- partitioned across each executed disposition channel.
+-- Query R14 [READ]: Calculate average net recovery by executed disposition channel
+-- (Original Reference: Query C.3)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     doc.disposition_executed,
-    COUNT(doc.outcome_id) AS items_executed,
+    COUNT(doc.outcome_id) AS items_processed,
     ROUND(AVG(doc.actual_revenue), 2) AS avg_gross_revenue,
     ROUND(AVG(doc.actual_cost), 2) AS avg_processing_cost,
-    ROUND(AVG(doc.actual_net_recovery), 2) AS avg_net_recovery
+    ROUND(AVG(doc.actual_net_recovery), 2) AS avg_net_recovery,
+    ROUND(SUM(doc.actual_net_recovery), 2) AS total_net_recovery
 FROM decision_outcomes doc
 GROUP BY doc.disposition_executed
-ORDER BY avg_net_recovery DESC;
+ORDER BY total_net_recovery DESC;
 
 -- ----------------------------------------------------------------------------
--- Query C.4: Calculate total recovered value
--- Type: -- READ
--- Business Purpose: Summarizes aggregate monetary recovery per product category,
--- filtering with HAVING to isolate high-yield categories (> ₹10,000 net).
+-- Query R15 [READ]: Calculate total recovered salvage value by liquidation partner
+-- (Original Reference: Query C.4)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
-    p.category,
-    COUNT(doc.outcome_id) AS units_recovered,
-    ROUND(SUM(doc.actual_revenue), 2) AS total_gross_recovered,
-    ROUND(SUM(doc.actual_cost), 2) AS total_channel_cost,
-    ROUND(SUM(doc.actual_net_recovery), 2) AS total_net_recovered
+    COALESCE(doc.execution_partner, 'Internal Fulfillment / Scrapped') AS execution_partner,
+    COUNT(doc.outcome_id) AS processed_batches,
+    ROUND(SUM(doc.actual_revenue), 2) AS total_revenue,
+    ROUND(SUM(doc.actual_cost), 2) AS total_cost,
+    ROUND(SUM(doc.actual_net_recovery), 2) AS total_salvage_realized
 FROM decision_outcomes doc
-JOIN disposition_decisions dd ON doc.decision_id = dd.decision_id
-JOIN returns r ON dd.return_id = r.return_id
-JOIN products p ON r.product_id = p.product_id
-GROUP BY p.category
-HAVING SUM(doc.actual_net_recovery) > 10000.00
-ORDER BY total_net_recovered DESC;
+GROUP BY doc.execution_partner
+ORDER BY total_salvage_realized DESC;
 
 -- ----------------------------------------------------------------------------
--- Query C.5: Calculate average decision confidence
--- Type: -- READ
--- Business Purpose: Computes system decision certainty across product categories,
--- isolating product families with more than 1 processed return.
+-- Query R16 [READ]: Calculate average decision confidence score across all decisions
+-- (Original Reference: Query C.5)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
-    p.category,
-    COUNT(dd.decision_id) AS total_decisions_evaluated,
-    ROUND(AVG(dd.confidence_score), 4) AS avg_model_confidence,
-    MIN(dd.confidence_score) AS min_confidence,
-    MAX(dd.confidence_score) AS max_confidence
-FROM disposition_decisions dd
-JOIN returns r ON dd.return_id = r.return_id
-JOIN products p ON r.product_id = p.product_id
-GROUP BY p.category
-HAVING COUNT(dd.decision_id) > 1
-ORDER BY avg_model_confidence DESC;
+    ROUND(AVG(confidence_score), 3) AS overall_avg_confidence,
+    ROUND(MIN(confidence_score), 3) AS min_confidence,
+    ROUND(MAX(confidence_score), 3) AS max_confidence,
+    COUNT(*) FILTER (WHERE confidence_score >= 0.800) AS high_confidence_count,
+    COUNT(*) FILTER (WHERE confidence_score < 0.800) AS low_confidence_count
+FROM disposition_decisions;
 
 -- ----------------------------------------------------------------------------
--- Query C.6: Calculate returns handled by each warehouse
--- Type: -- READ
--- Business Purpose: Measures intake processing throughput across all warehouses,
--- computing current active backlog vs completed items.
+-- Query R17 [READ]: Calculate returns handled by each warehouse facility
+-- (Original Reference: Query C.6)
 -- ----------------------------------------------------------------------------
--- READ
 SELECT
     w.warehouse_id,
     w.warehouse_code,
     w.facility_name,
     w.city,
-    COUNT(r.return_id) AS total_returns_received,
-    SUM(CASE WHEN r.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_returns,
-    SUM(CASE WHEN r.status NOT IN ('COMPLETED', 'CANCELLED') THEN 1 ELSE 0 END) AS active_backlog
+    w.capacity,
+    COUNT(r.return_id) AS total_returns_handled,
+    COUNT(r.return_id) FILTER (WHERE r.status = 'COMPLETED') AS completed_returns,
+    COUNT(r.return_id) FILTER (WHERE r.status != 'COMPLETED' AND r.status != 'CANCELLED') AS active_queue,
+    ROUND((COUNT(r.return_id)::NUMERIC / w.capacity) * 100, 2) AS intake_utilization_percent
 FROM warehouses w
 LEFT JOIN returns r ON w.warehouse_id = r.warehouse_id
-GROUP BY w.warehouse_id, w.warehouse_code, w.facility_name, w.city
-ORDER BY total_returns_received DESC;
-
-
--- ============================================================================
--- CATEGORY D: INSERT QUERIES
--- Transactional data ingress across catalog ingestion, intake triage, and decisioning.
--- ============================================================================
+GROUP BY w.warehouse_id, w.warehouse_code, w.facility_name, w.city, w.capacity
+ORDER BY total_returns_handled DESC;
 
 -- ----------------------------------------------------------------------------
--- Query D.1: Insert a new product
--- Type: -- WRITE
--- Target Table: products
--- Business Purpose: Onboards a newly supported SKU into the electronics master catalog.
+-- Query R18 [READ]: Authenticate operator by email (Auth Login query)
+-- (Original Reference: Query APP.1)
 -- ----------------------------------------------------------------------------
--- WRITE
+SELECT operator_id, employee_code, full_name, email, password_hash, app_role, warehouse_id, is_active
+FROM operators
+WHERE LOWER(email) = LOWER('rajesh.sharma@returnloop.internal');
+
+-- ----------------------------------------------------------------------------
+-- Query R19 [READ]: Executive Dashboard summary metrics (status counts, revenue, recovery rate)
+-- (Original Reference: Query APP.2)
+-- ----------------------------------------------------------------------------
+SELECT
+  COUNT(*)::int AS total_returns,
+  COUNT(*) FILTER (WHERE status = 'RECEIVED')::int AS received,
+  COUNT(*) FILTER (WHERE status = 'UNDER_INSPECTION')::int AS under_inspection,
+  COUNT(*) FILTER (WHERE status = 'EVALUATED')::int AS evaluated,
+  COUNT(*) FILTER (WHERE status = 'DECIDED')::int AS decided,
+  COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed,
+  COUNT(*) FILTER (WHERE status = 'CANCELLED')::int AS cancelled
+FROM returns;
+
+-- ----------------------------------------------------------------------------
+-- Query W1 [WRITE]: Insert a new product into master catalog
+-- (Original Reference: Query D.1)
+-- ----------------------------------------------------------------------------
 INSERT INTO products (sku, brand, model_name, category, retail_price)
-VALUES (
-    'SKU-APP-AIRPODP2',
-    'Apple',
-    'AirPods Pro (2nd Generation, USB-C)',
-    'Audio',
-    24900.00
-)
-ON CONFLICT (sku) DO UPDATE
-SET retail_price = EXCLUDED.retail_price
-RETURNING product_id, sku, brand, model_name, retail_price;
+VALUES ('SKU-TEST-PLAN-001', 'Logitech', 'MX Master 3S Wireless Mouse', 'Peripherals', 8995.00)
+RETURNING product_id, sku, model_name, retail_price;
 
 -- ----------------------------------------------------------------------------
--- Query D.2: Register a new return
--- Type: -- WRITE
--- Target Table: returns
--- Business Purpose: Creates an intake tracking record for an item received at warehouse.
+-- Query W2 [WRITE]: Register a new incoming return intake record
+-- (Original Reference: Query D.2)
 -- ----------------------------------------------------------------------------
--- WRITE
-INSERT INTO returns (return_tracking_number, product_id, warehouse_id, serial_number, return_reason, return_date, status, customer_comment)
-VALUES (
-    'RET-2026-0015',
-    (SELECT product_id FROM products WHERE sku = 'SKU-SONY-PS5SLIM'),
-    1,
-    'SN-PS5-9081273645',
-    'Unwanted birthday gift / duplicate order',
-    CURRENT_DATE,
-    'RECEIVED',
-    'Package intact, factory seal unblemished.'
-)
-RETURNING return_id, return_tracking_number, product_id, status;
+INSERT INTO returns (
+    return_tracking_number, product_id, warehouse_id,
+    serial_number, return_reason, return_date, status, customer_comment
+) VALUES (
+    'RET-2026-PLAN-001', 1, 1,
+    'SN-PLAN-TEST-99', 'Defective upon arrival', CURRENT_DATE, 'RECEIVED',
+    'Device failed initial power-on diagnostics.'
+) RETURNING return_id, return_tracking_number, status;
 
 -- ----------------------------------------------------------------------------
--- Query D.3: Record an inspection
--- Type: -- WRITE
--- Target Table: inspections
--- Business Purpose: Captures diagnostic results and condition grade upon triage.
+-- Query W3 [WRITE]: Record a multi-point technical inspection
+-- (Original Reference: Query D.3)
 -- ----------------------------------------------------------------------------
--- WRITE
-INSERT INTO inspections (return_id, inspector_id, condition_grade, has_original_packaging, has_all_accessories, functional_status, repair_estimate, diagnostic_notes)
-VALUES (
-    (SELECT return_id FROM returns WHERE return_tracking_number = 'RET-2026-0015'),
-    1,
-    'Excellent',
-    TRUE,
-    TRUE,
-    'Fully Functional',
-    0.00,
-    'Original box seal verified intact. Device never powered on. 100% factory pristine.'
-)
-RETURNING inspection_id, return_id, condition_grade, functional_status;
+INSERT INTO inspections (
+    return_id, inspector_id, condition_grade,
+    has_original_packaging, has_all_accessories,
+    functional_status, repair_estimate, diagnostic_notes
+) VALUES (
+    12, 1, 'Good',
+    TRUE, TRUE,
+    'Minor Glitch', 1200.00,
+    'Firmware recalibration needed; cosmetic casing intact.'
+) RETURNING inspection_id, condition_grade, functional_status, repair_estimate;
 
 -- ----------------------------------------------------------------------------
--- Query D.4: Insert a disposition decision
--- Type: -- WRITE
--- Target Table: disposition_decisions
--- Business Purpose: Records algorithmic recommendation and operator authorization.
+-- Query W4 [WRITE]: Insert an approved disposition decision
+-- (Original Reference: Query D.4)
 -- ----------------------------------------------------------------------------
--- WRITE
-INSERT INTO disposition_decisions (return_id, recommended_disposition, final_disposition, decided_by_operator_id, is_override, override_reason, confidence_score)
-VALUES (
-    (SELECT return_id FROM returns WHERE return_tracking_number = 'RET-2026-0015'),
-    'Resell',
-    'Resell',
-    1,
-    FALSE,
-    NULL,
-    0.990
-)
-RETURNING decision_id, return_id, final_disposition, confidence_score;
-
-
--- ============================================================================
--- CATEGORY E: UPDATE QUERIES
--- Pipeline state transitions, operator overrides, and recovery reconciliation.
--- ============================================================================
+INSERT INTO disposition_decisions (
+    return_id, recommended_disposition, final_disposition,
+    decided_by_operator_id, is_override, override_reason, confidence_score
+) VALUES (
+    10, 'Resell', 'Resell',
+    1, FALSE, NULL, 0.950
+) RETURNING decision_id, return_id, final_disposition, confidence_score;
 
 -- ----------------------------------------------------------------------------
--- Query E.1: Update return status
--- Type: -- WRITE
--- Target Table: returns
--- Business Purpose: Transitions return lifecycle state upon disposition approval.
+-- Query W5 [WRITE]: Update return lifecycle status to DECIDED
+-- (Original Reference: Query E.1)
 -- ----------------------------------------------------------------------------
--- WRITE
 UPDATE returns
 SET status = 'DECIDED'
-WHERE return_tracking_number = 'RET-2026-0015'
+WHERE return_id = 1
 RETURNING return_id, return_tracking_number, status;
 
 -- ----------------------------------------------------------------------------
--- Query E.2: Record an operator override
--- Type: -- WRITE
--- Target Table: disposition_decisions
--- Business Purpose: Logs a supervisor decision divergence with mandatory audit rationale.
+-- Query W6 [WRITE]: Record an operator override with audit reason
+-- (Original Reference: Query E.2)
 -- ----------------------------------------------------------------------------
--- WRITE
 UPDATE disposition_decisions
 SET is_override = TRUE,
     final_disposition = 'Donate',
-    override_reason = 'Manager authorized corporate donation to local vocational training school.',
+    override_reason = 'Manager authorized corporate donation to local training center.',
     decided_by_operator_id = 1,
     decided_at = CURRENT_TIMESTAMP
-WHERE decision_id = 8
-RETURNING decision_id, return_id, recommended_disposition, final_disposition, is_override, override_reason;
+WHERE decision_id = 1
+RETURNING decision_id, return_id, recommended_disposition, final_disposition, is_override;
 
 -- ----------------------------------------------------------------------------
--- Query E.3: Update disposition outcome
--- Type: -- WRITE
--- Target Table: decision_outcomes
--- Business Purpose: Updates liquidation partner assignment and audit observations.
+-- Query W7 [WRITE]: Update disposition outcome execution partner & notes
+-- (Original Reference: Query E.3)
 -- ----------------------------------------------------------------------------
--- WRITE
 UPDATE decision_outcomes
 SET execution_partner = 'Cashify Certified Platinum Hub',
     outcome_notes = 'Batch inspection approved with bonus recovery rebate.'
-WHERE outcome_id = 2
+WHERE outcome_id = 1
 RETURNING outcome_id, execution_partner, outcome_notes;
 
 -- ----------------------------------------------------------------------------
--- Query E.4: Record actual recovery
--- Type: -- WRITE
--- Target Table: decision_outcomes
--- Business Purpose: Records finalized settlement proceeds and processing expenses;
--- actual_net_recovery is automatically recalculated by generated column logic.
+-- Query W8 [WRITE]: Record actual financial recovery revenue and processing cost
+-- (Original Reference: Query E.4)
 -- ----------------------------------------------------------------------------
--- WRITE
 UPDATE decision_outcomes
-SET actual_revenue = 65200.00,
-    actual_cost = 3800.00
-WHERE outcome_id = 2
+SET actual_revenue = 65000.00,
+    actual_cost = 3500.00
+WHERE outcome_id = 1
 RETURNING outcome_id, actual_revenue, actual_cost, actual_net_recovery;
 
-
--- ============================================================================
--- CATEGORY F: DELETE QUERY & FOREIGN-KEY RESTRICTION EXPLANATION
--- Controlled record removal and referential integrity enforcement.
--- ============================================================================
-
 -- ----------------------------------------------------------------------------
--- Query F.1: Controlled Deletion Example
--- Type: -- WRITE
--- Business Purpose: Safely removes an unselected candidate alternative pathway
--- (e.g., removing rank 3 alternative for decision 1) without violating FK constraints.
+-- Query W9 [WRITE]: Controlled deletion of unselected candidate alternative
+-- (Original Reference: Query F.1)
 -- ----------------------------------------------------------------------------
--- WRITE
 DELETE FROM decision_alternatives
-WHERE decision_id = 1 AND rank_order = 3
+WHERE decision_id = 1 AND rank_order = 6
 RETURNING alternative_id, decision_id, disposition_type, rank_order;
+

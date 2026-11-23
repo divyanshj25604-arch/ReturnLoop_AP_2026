@@ -1,0 +1,71 @@
+================================================================================
+Query R9 [READ]: Join Returns with Disposition Decisions
+Original ID: B.4
+================================================================================
+SQL Statement:
+SELECT
+    r.return_id,
+    r.return_tracking_number,
+    p.model_name,
+    dd.decision_id,
+    dd.recommended_disposition,
+    dd.final_disposition,
+    dd.is_override,
+    dd.override_reason,
+    dd.confidence_score,
+    o.full_name AS decided_by_operator
+FROM returns r
+JOIN products p ON r.product_id = p.product_id
+JOIN disposition_decisions dd ON r.return_id = dd.return_id
+JOIN operators o ON dd.decided_by_operator_id = o.operator_id
+ORDER BY dd.decided_at DESC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=25.30..25.32 rows=9 width=701) (actual time=0.063..0.072 rows=9.00 loops=1)
+  Output: r.return_id, r.return_tracking_number, p.model_name, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, o.full_name, dd.decided_at
+  Sort Key: dd.decided_at DESC
+  Sort Method: quicksort  Memory: 26kB
+  Buffers: shared hit=4
+  ->  Hash Join  (cost=13.83..25.16 rows=9 width=701) (actual time=0.052..0.064 rows=9.00 loops=1)
+        Output: r.return_id, r.return_tracking_number, p.model_name, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, o.full_name, dd.decided_at
+        Hash Cond: (p.product_id = r.product_id)
+        Buffers: shared hit=4
+        ->  Seq Scan on public.products p  (cost=0.00..10.90 rows=90 width=322) (actual time=0.007..0.008 rows=10.00 loops=1)
+              Output: p.product_id, p.sku, p.brand, p.model_name, p.category, p.retail_price, p.created_at
+              Buffers: shared hit=1
+        ->  Hash  (cost=13.72..13.72 rows=9 width=387) (actual time=0.042..0.050 rows=9.00 loops=1)
+              Output: r.return_id, r.return_tracking_number, r.product_id, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, o.full_name
+              Buckets: 1024  Batches: 1  Memory Usage: 10kB
+              Buffers: shared hit=3
+              ->  Hash Join  (cost=2.50..13.72 rows=9 width=387) (actual time=0.035..0.046 rows=9.00 loops=1)
+                    Output: r.return_id, r.return_tracking_number, r.product_id, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, o.full_name
+                    Hash Cond: (o.operator_id = dd.decided_by_operator_id)
+                    Buffers: shared hit=3
+                    ->  Seq Scan on public.operators o  (cost=0.00..10.60 rows=60 width=222) (actual time=0.005..0.005 rows=5.00 loops=1)
+                          Output: o.operator_id, o.employee_code, o.full_name, o.email, o.password_hash, o.app_role, o.role, o.warehouse_id, o.is_active, o.created_at
+                          Buffers: shared hit=1
+                    ->  Hash  (cost=2.39..2.39 rows=9 width=173) (actual time=0.027..0.035 rows=9.00 loops=1)
+                          Output: r.return_id, r.return_tracking_number, r.product_id, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, dd.decided_by_operator_id
+                          Buckets: 1024  Batches: 1  Memory Usage: 10kB
+                          Buffers: shared hit=2
+                          ->  Hash Join  (cost=1.20..2.39 rows=9 width=173) (actual time=0.018..0.031 rows=9.00 loops=1)
+                                Output: r.return_id, r.return_tracking_number, r.product_id, dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, dd.decided_by_operator_id
+                                Inner Unique: true
+                                Hash Cond: (r.return_id = dd.return_id)
+                                Buffers: shared hit=2
+                                ->  Seq Scan on public.returns r  (cost=0.00..1.14 rows=14 width=22) (actual time=0.002..0.003 rows=14.00 loops=1)
+                                      Output: r.return_id, r.return_tracking_number, r.product_id, r.warehouse_id, r.serial_number, r.return_reason, r.return_date, r.status, r.customer_comment, r.created_at
+                                      Buffers: shared hit=1
+                                ->  Hash  (cost=1.09..1.09 rows=9 width=155) (actual time=0.012..0.019 rows=9.00 loops=1)
+                                      Output: dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, dd.return_id, dd.decided_by_operator_id
+                                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                      Buffers: shared hit=1
+                                      ->  Seq Scan on public.disposition_decisions dd  (cost=0.00..1.09 rows=9 width=155) (actual time=0.004..0.007 rows=9.00 loops=1)
+                                            Output: dd.decision_id, dd.recommended_disposition, dd.final_disposition, dd.is_override, dd.override_reason, dd.confidence_score, dd.decided_at, dd.return_id, dd.decided_by_operator_id
+                                            Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=24
+Planning Time: 0.300 ms
+Execution Time: 0.105 ms

@@ -1,0 +1,10 @@
+Update on public.returns  (cost=0.00..1.18 rows=1 width=84) (actual time=0.102..0.106 rows=1.00 loops=1)
+  Output: return_id, return_tracking_number, status
+  Buffers: shared hit=11
+  ->  Seq Scan on public.returns  (cost=0.00..1.18 rows=1 width=84) (actual time=0.007..0.009 rows=1.00 loops=1)
+        Output: 'DECIDED'::character varying(30), ctid
+        Filter: (returns.return_id = 1)
+        Rows Removed by Filter: 13
+        Buffers: shared hit=1
+Planning Time: 0.020 ms
+Execution Time: 0.347 ms

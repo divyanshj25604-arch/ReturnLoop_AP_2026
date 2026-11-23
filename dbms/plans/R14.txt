@@ -1,0 +1,36 @@
+================================================================================
+Query R14 [READ]: Calculate average net recovery by executed disposition channel
+Original ID: C.3
+================================================================================
+SQL Statement:
+SELECT
+    doc.disposition_executed,
+    COUNT(doc.outcome_id) AS items_processed,
+    ROUND(AVG(doc.actual_revenue), 2) AS avg_gross_revenue,
+    ROUND(AVG(doc.actual_cost), 2) AS avg_processing_cost,
+    ROUND(AVG(doc.actual_net_recovery), 2) AS avg_net_recovery,
+    ROUND(SUM(doc.actual_net_recovery), 2) AS total_net_recovery
+FROM decision_outcomes doc
+GROUP BY doc.disposition_executed
+ORDER BY total_net_recovery DESC;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Sort  (cost=24.26..24.66 rows=160 width=194) (actual time=0.033..0.034 rows=5.00 loops=1)
+  Output: disposition_executed, (count(outcome_id)), (round(avg(actual_revenue), 2)), (round(avg(actual_cost), 2)), (round(avg(actual_net_recovery), 2)), (round(sum(actual_net_recovery), 2))
+  Sort Key: (round(sum(doc.actual_net_recovery), 2)) DESC
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=1
+  ->  HashAggregate  (cost=13.60..18.40 rows=160 width=194) (actual time=0.021..0.028 rows=5.00 loops=1)
+        Output: disposition_executed, count(outcome_id), round(avg(actual_revenue), 2), round(avg(actual_cost), 2), round(avg(actual_net_recovery), 2), round(sum(actual_net_recovery), 2)
+        Group Key: doc.disposition_executed
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on public.decision_outcomes doc  (cost=0.00..11.60 rows=160 width=110) (actual time=0.005..0.006 rows=6.00 loops=1)
+              Output: outcome_id, decision_id, disposition_executed, actual_revenue, actual_cost, actual_net_recovery, execution_partner, completion_date, outcome_notes, created_at
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.054 ms
+Execution Time: 0.052 ms

@@ -1,0 +1,24 @@
+================================================================================
+Query W8 [WRITE]: Record actual financial recovery revenue and processing cost
+Original ID: E.4
+================================================================================
+SQL Statement:
+UPDATE decision_outcomes
+SET actual_revenue = 65000.00,
+    actual_cost = 3500.00
+WHERE outcome_id = 1
+RETURNING outcome_id, actual_revenue, actual_cost, actual_net_recovery;
+
+--------------------------------------------------------------------------------
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE) Execution Plan:
+--------------------------------------------------------------------------------
+Update on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=38) (actual time=0.063..0.063 rows=1.00 loops=1)
+  Output: outcome_id, actual_revenue, actual_cost, actual_net_recovery
+  Buffers: shared hit=8
+  ->  Index Scan using decision_outcomes_pkey on public.decision_outcomes  (cost=0.14..8.16 rows=1 width=38) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Output: 65000.00::numeric(10,2), 3500.00::numeric(10,2), ctid
+        Index Cond: (decision_outcomes.outcome_id = 1)
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning Time: 0.035 ms
+Execution Time: 0.073 ms

@@ -1,0 +1,10 @@
+Aggregate  (cost=1.25..1.27 rows=1 width=112) (actual time=0.017..0.017 rows=1.00 loops=1)
+  Output: round(avg(confidence_score), 3), round(min(confidence_score), 3), round(max(confidence_score), 3), count(*) FILTER (WHERE (confidence_score >= 0.800)), count(*) FILTER (WHERE (confidence_score < 0.800))
+  Buffers: shared hit=1
+  ->  Seq Scan on public.disposition_decisions  (cost=0.00..1.09 rows=9 width=5) (actual time=0.004..0.005 rows=9.00 loops=1)
+        Output: decision_id, return_id, recommended_disposition, final_disposition, decided_by_operator_id, is_override, override_reason, confidence_score, decided_at
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.046 ms
+Execution Time: 0.032 ms

@@ -1,0 +1,10 @@
+Insert on public.returns  (cost=0.00..0.02 rows=1 width=986) (actual time=0.241..0.242 rows=1.00 loops=1)
+  Output: returns.return_id, returns.return_tracking_number, returns.status
+  Buffers: shared hit=30 dirtied=8
+  ->  Result  (cost=0.00..0.02 rows=1 width=986) (actual time=0.054..0.054 rows=1.00 loops=1)
+        Output: nextval('returns_return_id_seq'::regclass), 'RET-2026-PLAN-001'::character varying(50), 1, 1, 'SN-PLAN-TEST-99'::character varying(100), 'Defective upon arrival'::character varying(255), CURRENT_DATE, 'RECEIVED'::character varying(30), 'Device failed initial power-on diagnostics.'::text, CURRENT_TIMESTAMP
+        Buffers: shared hit=14 dirtied=1
+Planning Time: 0.016 ms
+Trigger RI_ConstraintTrigger_c_16977 for constraint fk_returns_product: time=0.154 calls=1
+Trigger RI_ConstraintTrigger_c_16982 for constraint fk_returns_warehouse: time=0.054 calls=1
+Execution Time: 0.463 ms
